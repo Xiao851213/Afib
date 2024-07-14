@@ -370,6 +370,49 @@ corplot_haf_hca = as.ggplot(corplot_haf_hca)
 ggsave(corplot_haf_hca,file="corplot_haf_hca.pdf",width = 5, height = 4)
 
 
+sma <- readRDS("./Data/sma.RDS")
+head(rownames(sma))
+av_sma <- AverageExpression(sma, group.by = "cell_type_original", assays = "RNA")
+av_sma <- av_sma[[1]]
+av_sma <-as.data.frame(av_sma)
+av_sma$gene <- rownames(av_sma)
+av_haf <- AverageExpression(haf, group.by = "cell_type", assays = "RNA")
+av_haf <- av_haf[[1]]
+av_haf <-as.data.frame(av_haf)
+av_haf$gene <- rownames(av_haf)
+haf_sma <- merge(av_haf, av_sma,by = "gene")
+gene <-  haf_sma$gene
+av_sma <- select(av_sma, -12)
+av_sce <- select(av_sce, -13)
+corplot_sce_sma <- pheatmap::pheatmap(cor(av_sce[gene,],av_sma[gene,],method = 'spearman'), cluster_rows = F, cluster_cols = F)
+av_haf <- select(av_haf, -10)
+corplot_haf_sma <- pheatmap::pheatmap(cor(av_haf[gene,],av_sma[gene,],method = 'spearman'), cluster_rows = F, cluster_cols = F)
+require(ggplotify)
+corplot_haf_sma = as.ggplot(corplot_haf_sma)
+ggsave(corplot_haf_sma,file="corplot_haf_sma.pdf",width = 5, height = 4)
+
+
+af.science <- readRDS("./Data/af_science.RDS")
+Idents(af.science) <- af.science@meta.data$cell_type
+head(rownames(af.science))
+saf <- af.science
+av_saf <- AverageExpression(saf, group.by = "cell_type", assays = "RNA")
+av_saf <- av_saf[[1]]
+av_saf <-as.data.frame(av_saf)
+av_saf$gene <- rownames(av_saf)
+av_haf <- AverageExpression(haf, group.by = "cell_type", assays = "RNA")
+av_haf <- av_haf[[1]]
+av_haf <-as.data.frame(av_haf)
+av_haf$gene <- rownames(av_haf)
+haf_saf <- merge(av_haf, av_saf,by = "gene")
+gene <-  haf_saf$gene
+av_saf <- select(av_saf, -7)
+av_haf <- select(av_haf, -10)
+corplot_haf_saf <- pheatmap::pheatmap(cor(av_haf[gene,],av_saf[gene,],method = 'spearman'), cluster_rows = F, cluster_cols = F)
+require(ggplotify)
+corplot_haf_saf = as.ggplot(corplot_haf_saf)
+ggsave(corplot_haf_saf,file="corplot_haf_saf.pdf",width = 5, height = 4)
+
 
 
 
