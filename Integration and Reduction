@@ -38,12 +38,336 @@ font_add('Arial','/Library/Fonts/Arial.ttf')
 showtext_auto()
 setwd("./Rdata/Total/")
 
+mycolor1<-pal_npg("nrc", alpha = 1)(10)
+mycolor2<-pal_aaas("default", alpha = 1)(10)
+mycolor3<-pal_nejm("default", alpha = 1)(8)
+mycolor4<-pal_lancet("lanonc", alpha = 1)(9)
+mycolor5<-pal_jama("default", alpha = 1)(7)
+mycolor6<-pal_jco("default", alpha = 1)(10)
+mycolor <-c(mycolor3,mycolor1,mycolor2,mycolor4,mycolor5,mycolor6)
+
+options(Seurat.object.assay.version = "v3")
+
 haf <- readRDS("D:/Work01/AF01/Rdata/haf.RDS")
 
+haf <- NormalizeData(haf)
+haf <- FindVariableFeatures(haf, selection.method = "vst", nfeatures = 3000)
+all.genes <- rownames(haf)
+haf <- ScaleData(haf, features = all.genes)
+haf <- RunPCA(haf, features = VariableFeatures(object = haf))
+haf <- FindNeighbors(haf, dims = 1:30)
+haf <- FindClusters(haf, resolution = 0.1)
+haf <- RunUMAP(haf, dims = 1:30)
+p1 <- DimPlot(haf, reduction = "pca", cols = mycolor, group.by = "group", pt.size = 0.1, raster=FALSE)
+p2 <- VlnPlot(haf, feature = "PC_1", cols = mycolor,group.by = "group",pt.size = 0, raster=FALSE)
+p3 <- p1 + p2
+ggsave(p3,file="haf_pca_before_batch.tiff",width = 7, height = 3)
+ggsave(p3,file="haf_pca_before_batch.pdf",width = 10, height = 4)
+p1 <- DimPlot(haf, reduction = "umap", cols = mycolor, group.by = "seurat_clusters", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file="haf_umap_before_batch_cluster.pdf",width = 5.5, height = 4)
+p1 <- DimPlot(haf, reduction = "umap", cols = mycolor, group.by = "group", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file="haf_umap_before_batch_group.pdf",width = 5.5, height = 4)
+p1 <- DimPlot(haf, reduction = "umap", cols = mycolor, group.by = "sample", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file="haf_umap_before_batch_sample.pdf",width = 7.5, height = 4)
+
+haf <- RunHarmony(haf,plot_convergence = TRUE, lambda = 0.5,group.by.vars = 'sample')
+p1 <- DimPlot(haf, reduction = "harmony", cols = mycolor, group.by = "group", pt.size = 0.1, raster=FALSE)
+p2 <- VlnPlot(haf, feature = "harmony_1", cols = mycolor,group.by = "group",pt.size = 0, raster=FALSE)
+p3 <- p1 + p2
+ggsave(p3,file="haf_harmony1.tiff",width = 7, height = 3)
+ggsave(p3,file="haf_harmony1.pdf",width = 10, height = 4)
+p4 <- VlnPlot(haf, features = c("nUMI", "nGene", "mitoRatio"), ncol = 3, raster=FALSE)
+ggsave(p4,file="haf_QC_VlnPlot.pdf",width = 5, height = 4)
+ggsave(p4,file="haf_QC_VlnPlot.tiff",width = 4, height = 3)
+ElbowPlot(haf,ndims = 30)
+haf <- FindNeighbors(haf, reduction = "harmony", dims = 1:30)
+haf <- FindClusters(haf, resolution = 0.1)
+haf <- RunUMAP(haf, reduction = "harmony", dims = 1:30)
+p1 <- DimPlot(haf, reduction = "umap", cols = mycolor, group.by = "seurat_clusters", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file="haf_umap_after_batch_cluster.pdf",width = 5.5, height = 4)
+p1 <- DimPlot(haf, reduction = "umap", cols = mycolor, group.by = "group", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file="haf_umap_after_batch_group.pdf",width = 5.5, height = 4)
+p1 <- DimPlot(haf, reduction = "umap", cols = mycolor, group.by = "sample", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file="haf_umap_after_batch_sample.pdf",width = 7.5, height = 4)
+
+seq <- seq(0, 1, by = 0.1)
+for(res in seq){
+  haf <- FindClusters(object = haf,method = "igraph",resolution = res)
+}
+p5 <- clustree(haf, prefix = 'RNA_snn_res.') + coord_flip()
+p5
+ggsave(p5,file="haf_clustree.pdf",width = 15, height = 10)
+
+haf <- FindClusters(haf, resolution = 1)
 
 
 
 
+celltype.markers <- c('GPAM', 'LPL', 'ADIPOQ', #Adipocyte
+                   'NPPA', 'MYL7', 'MYL4','TTN', 'RYR2','TNNT2', #Cardiomyocyte
+                   'VWF', 'PECAM1', 'CDH5', #Endothelial
+                   'DCN', 'GSN', 'PDGFRA', #Fibroblast
+                   'PTPRC', 'CD8A', 'IL7R', #Lymphoid
+                   'MSLN', 'WT1', 'BNC1',#Mesothelial
+                   'RGS5', 'ABCC9', 'KCNJ8',#Pericyte
+                   'MYH11', 'TAGLN', 'ACTA2',#SMC
+                   'CD14', 'C1QA', 'CD68', 'CD11B','ITGAM', #Myeloid
+                   'PLP1', 'NRXN1', 'NRXN3')#Neuron
+haf_celltype_markers_dot <- DotPlot(haf, features = celltype.markers, assay='RNA')  + coord_flip()
+haf_celltype_markers_dot
+ggsave(plot=haf_celltype_markers_dot, filename="haf_celltype_markers_dot.pdf",width = 15, height = 10)
+
+metadata <- haf@meta.data
+metadata$cell_type = "NA"
+metadata$cell_type[which(metadata$seurat_clusters == 0 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 1 )] = "Fibroblast"
+metadata$cell_type[which(metadata$seurat_clusters == 2 )] = "Mesothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 3 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 4 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 5 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 6 )] = "Myeloid"
+metadata$cell_type[which(metadata$seurat_clusters == 7 )] = "Cardiomyocyte"
+metadata$cell_type[which(metadata$seurat_clusters == 8 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 9 )] = "Cardiomyocyte"
+metadata$cell_type[which(metadata$seurat_clusters == 10 )] = "Myeloid"
+metadata$cell_type[which(metadata$seurat_clusters == 11 )] = "Fibroblast"
+metadata$cell_type[which(metadata$seurat_clusters == 12 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 13 )] = "Cardiomyocyte"
+metadata$cell_type[which(metadata$seurat_clusters == 14 )] = "Mesothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 15 )] = "Lymphoid"
+metadata$cell_type[which(metadata$seurat_clusters == 16 )] = "Fibroblast"
+metadata$cell_type[which(metadata$seurat_clusters == 17 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 18 )] = "Mural"
+metadata$cell_type[which(metadata$seurat_clusters == 19 )] = "Fibroblast"
+metadata$cell_type[which(metadata$seurat_clusters == 20 )] = "Adipocyte"
+metadata$cell_type[which(metadata$seurat_clusters == 21 )] = "Fibroblast"
+metadata$cell_type[which(metadata$seurat_clusters == 22 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 23 )] = "Mesothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 24 )] = "Cardiomyocyte"
+metadata$cell_type[which(metadata$seurat_clusters == 25 )] = "Mesothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 26 )] = "Lymphoid"
+metadata$cell_type[which(metadata$seurat_clusters == 27 )] = "Neuron"
+metadata$cell_type[which(metadata$seurat_clusters == 28 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 29 )] = "Fibroblast"
+metadata$cell_type[which(metadata$seurat_clusters == 30 )] = "Endothelial"
+metadata$cell_type[which(metadata$seurat_clusters == 31 )] = "Cardiomyocyte"
+haf@meta.data <- metadata
+Idents(haf) <- haf@meta.data$cell_type
+saveRDS(haf, file = "haf_01.RDS")
+
+haf_celltype_markers_dot <- DotPlot(haf, features = celltype.markers, group.by = 'cell_type', assay='RNA'  )  + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+haf_celltype_markers_dot
+ggsave(plot=haf_celltype_markers_dot, filename="haf_celltype_markers_dot_celltype.pdf",width = 10, height = 4)
+
+new_color <- 
+c(
+"#E18727FF", #"Adipocyte"
+"#EE4C97FF", #"Cardiomyocyte"
+"#0072B5FF", #"Fibroblast"
+"#20854EFF", #"Mesothelial"
+"#FFDC91FF", #"Lymphoid"
+"#7876B1FF", #"Mesothelial"
+"#4DBBD5FF", #"Mural"
+ "#E64B35FF", #"Myeloid"
+"#6F99ADFF"  ) #"Neuron"
+
+#umap plot
+data = haf@reductions$umap@cell.embeddings %>% as.data.frame() %>% cbind(cell_type = haf@meta.data$cell_type)
+colnames(data) <- c('umap_1', 'umap_2', 'cell_type')
+p <- ggplot(data,aes(x= umap_1 , y = umap_2 ,color = cell_type)) +  geom_point(size = 0.1 , alpha =1 )  +  scale_color_manual(values = new_color)
+p2 <- p  +
+  theme(panel.grid.major = element_blank(), #????
+        panel.grid.minor = element_blank(), #????
+        panel.border = element_blank(), #??
+        axis.title = element_blank(),  #???
+        axis.text = element_blank(), # ??
+        axis.ticks = element_blank(),
+        panel.background = element_rect(fill = 'white'), #???
+        plot.background=element_rect(fill="white"))
+p3 <- p2 +         
+        theme(
+          legend.position = "none")
+umap <- data
+p4 <- p3 + 
+  geom_segment(aes(x = min(umap$umap_1) , y = min(umap$umap_2) ,
+                   xend = min(umap$umap_1) +3, yend = min(umap$umap_2) ),
+               colour = "black", size=0.5,arrow = arrow(length = unit(0.3,"cm"),  type = "closed")) + 
+  geom_segment(aes(x = min(umap$umap_1)  , y = min(umap$umap_2)  ,
+                   xend = min(umap$umap_1) , yend = min(umap$umap_2) + 3),
+               colour = "black", size=0.5,arrow = arrow(length = unit(0.3,"cm"),  type = "closed")) +
+  annotate("text", x = min(umap$umap_1) +1.5, y = min(umap$umap_2) -1, label = "UMAP_1",
+           color="black",size = 5, family = "arial") + 
+  annotate("text", x = min(umap$umap_1) -1, y = min(umap$umap_2) + 1.5, label = "UMAP_2",
+           color="black",size = 5, family = "arial",angle=90) 
+cell_type_med <- umap %>%
+  group_by(cell_type) %>%
+  summarise(
+    umap_1 = median(umap_1),
+    umap_2 = median(umap_2)
+  )
+library(ggrepel)
+p5 <- p4 +geom_label_repel(aes(label=cell_type), label.size = NA,family = "arial",size = 6, data = cell_type_med,
+                   box.padding= unit(0, "lines"),point.padding=unit(0.5, "lines"), color = "black", fill = alpha("white",0.5) )             
+ggsave(plot=p5, filename="haf_total_umap.pdf",width = 7.5,height = 6)
+
+
+#pie plot for proportion
+p1 <- table(haf@meta.data$cell_type)
+p1 <- as.data.frame(p1)
+p1 <- p1[which(p1$Freq>0),]
+p1$prop <- 100*p1$Freq/sum(p1$Freq)
+p1$prop <- round(p1$prop, 2)
+p1 <- p1[order(p1$prop, decreasing = T),]
+
+p1$type <- paste(p1$Var1,'(',p1$prop,'%)')
+p2 <- ggplot(data = p1, aes(x = 1, 
+                                y = prop)) +
+  geom_col(color = "white", width = 1, aes(fill = type)) +
+  theme(panel.grid.major = element_blank(), #????
+        panel.grid.minor = element_blank(), #????
+        panel.border = element_blank(), #??
+        axis.title = element_blank(),  #???
+        axis.text = element_blank(), # ??
+        axis.ticks = element_blank(),
+        panel.background = element_rect(fill = 'white'), #???
+        plot.background=element_rect(fill="white"))+
+  xlim(-0.5, 1.5) +
+  scale_fill_manual(values = new_color) +
+  ggtitle('Total nucleus = 140,312') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  coord_polar(theta = "y") 
+ggsave(plot=p2, filename="haf_pie_circle.pdf",width = 5.5, height = 4)
+
+
+#Proportion
+mycolor <- new_color
+#data extraction
+plotC <- table(haf@meta.data$sample, haf@meta.data$cell_type) %>% melt()
+colnames(plotC) <- c("Sample", "Cell_Type","Number")
+plotC$Sample <- factor(plotC$Sample, 
+levels=c('P01_L_AF',   'P02_L_AF',   'P03_L_AF',   'P04_L_AF', 'P05_L_AF', 'P06_L_AF',   'P07_L_AF',   'P08_L_AF' ,
+'P09_L_CTRL', 'P10_L_CTRL',   'P11_L_CTRL', 
+'P04_R_AF',   'P05_R_AF',   'P13_R_AF',   'P14_R_AF',
+'P10_R_CTRL',     'P15_R_CTRL', 'P16_R_CTRL', 'P17_R_CTRL'  ),ordered = TRUE)
+write.csv(plotC,file = 'haf_propotion_cell_type_sample.csv')
+#colomplot
+pC1 <- ggplot(data = plotC, aes(x = Sample, y = Number, fill = Cell_Type)) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="stack")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Average number")+
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))
+#ratioplot
+pC2 <- ggplot(data = plotC, aes(x = Sample, y = Number, fill = Cell_Type)) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="fill")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Cell proportion")+
+scale_y_continuous(labels = percent)+ ####move y axi
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))#?????????45?
+#bind two plot
+pC <- pC1 / pC2 + plot_layout(ncol = 1,  guides = 'collect')
+#save plot
+ggsave(pC,file="haf_Propotion_Sample.pdf",width = 10, height = 6)
+
+plotC <- table(haf@meta.data$group, haf@meta.data$cell_type) %>% melt()
+colnames(plotC) <- c("Group", "Cell_Type","Number")
+plotC$Group <- factor(plotC$Group, levels=c('AF_left', 'Ctrl_left', 'AF_right', 'Ctrl_right'),ordered = TRUE)
+write.csv(plotC,file = 'haf_propotion_cell_type_group.csv')
+#colomplot
+pC1 <- ggplot(data = plotC, aes(x = Group, y = Number, fill = Cell_Type)) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="stack")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Average number")+
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 90,hjust = 0.8, vjust = 0.6))
+#ratioplot
+pC2 <- ggplot(data = plotC, aes(x = Group, y = Number, fill = Cell_Type)) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="fill")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Cell proportion")+
+scale_y_continuous(labels = percent)+ ####move y axi
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 90,hjust = 0.8, vjust = 0.6))#?????????45?
+#bind two plot
+pC <- pC1 + pC2 + plot_layout(ncol = 2, widths = c(1,1),guides = 'collect')
+#save plot
+ggsave(pC,file="haf_Propotion_Group.pdf",width = 5.5, height = 4)
+
+#Correlation
+
+av_haf <- AverageExpression(haf, group.by = "cell_type", assays = "RNA")
+av_haf <- av_haf[[1]]
+cg_haf = names(tail(sort(apply(av_haf,1,sd)),2000))
+av_haf <-as.data.frame(av_haf)
+corplot_haf <- pheatmap::pheatmap(cor(av_haf[cg_haf,],av_haf[cg_haf,], method = 'spearman'))
+ggsave(corplot_haf,file="corplot_haf.pdf",width = 5, height = 4) 
+
+hca <- readRDS("./Data/All_Cells_of_the_adult_human_heart.RDS")
+ids = mapIds(org.Hs.eg.db, keys =rownames(hca),   column = 'SYMBOL',keytype = 'ENSEMBL')
+ids <- as.data.frame(ids)
+ids$SYMBOL <-ids$ids
+ids$ENSEMBL <- rownames(ids)
+ids=na.omit(ids)
+ids=ids[!duplicated(ids$SYMBOL),]
+ids=ids[!duplicated(ids$ENSEMBL),]
+pos=match(ids$ENSEMBL,rownames(hca) )
+hca=hca[pos,]
+#write a function
+RenameGenesSeurat <- function(obj , 
+                              newnames ) { 
+  # Replace gene names in different slots of a Seurat object. Run this before integration. Run this before integration. 
+  # It only changes obj@assays$RNA@counts, @data and @scale.data.
+  print("Run this before integration. It only changes obj@assays$RNA@counts, @data and @scale.data.")
+  RNA <- obj@assays$RNA
+  if (nrow(RNA) == length(newnames)) {
+    if (length(RNA@counts)) RNA@counts@Dimnames[[1]]            <- newnames
+    if (length(RNA@data)) RNA@data@Dimnames[[1]]                <- newnames
+    if (length(RNA@scale.data)) RNA@scale.data@Dimnames[[1]]    <- newnames
+  } else {"Unequal gene sets: nrow(RNA) != nrow(newnames)"}
+  obj@assays$RNA <- RNA
+  return(obj)
+}
+obj=RenameGenesSeurat(obj = hca, 
+                  newnames = ids$SYMBOL)
+hca <-obj
+head(rownames(hca))
+
+
+
+av_hca <- AverageExpression(hca, group.by = "cell_type_original", assays = "RNA")
+av_hca <- av_hca[[1]]
+av_hca <-as.data.frame(av_hca)
+av_hca$gene <- rownames(av_hca)
+av_haf <- AverageExpression(haf, group.by = "cell_type", assays = "RNA")
+av_haf <- av_haf[[1]]
+av_haf <-as.data.frame(av_haf)
+av_haf$gene <- rownames(av_haf)
+hca_haf <- merge(av_hca,av_haf, by = "gene")
+rownames(hca_haf) <- hca_haf$gene
+gene <- rownames(hca_haf)
+av_hca <- select(av_hca, -14)
+av_haf <- select(av_haf, -10)
+corplot_haf_hca <- pheatmap::pheatmap(cor(av_haf[gene,],av_hca[gene,],method = 'spearman'), cluster_rows = F, cluster_cols = F)
+require(ggplotify)
+corplot_haf_hca = as.ggplot(corplot_haf_hca)
+ggsave(corplot_haf_hca,file="corplot_haf_hca.pdf",width = 5, height = 4)
 
 
 
