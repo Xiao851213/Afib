@@ -1,0 +1,240 @@
+library(Seurat)
+library(ggplot2)
+library(stringr)
+library(ggsci)
+library(org.Hs.eg.db)
+library(tidyverse)
+library(showtext)
+library(scales)
+library(reshape2)
+library(patchwork)
+library(pheatmap)
+library(DoubletFinder)
+library(ggplot2)
+library(dplyr)
+library(ggpubr)
+library(cowplot)
+library(REdaS)
+library(qdapTools)
+library(clusterProfiler)
+library(harmony)
+library(RCurl)
+library(stringr)
+library(XML)
+library(clustree)
+library(enrichplot)
+library(GOplot)
+library(DOSE)
+library(ggnewscale)
+library(topGO)
+library(circlize)
+library(ComplexHeatmap)
+library(msigdbr)
+library(GSVA)
+library(paletteer)
+library(magrittr)
+
+font_add('Arial','/Library/Fonts/Arial.ttf')
+showtext_auto()
+
+setwd("./Rdata/Total/")
+
+mycolor1<-pal_npg("nrc", alpha = 1)(10)
+mycolor2<-pal_aaas("default", alpha = 1)(10)
+mycolor3<-pal_nejm("default", alpha = 1)(8)
+mycolor4<-pal_lancet("lanonc", alpha = 1)(9)
+mycolor5<-pal_jama("default", alpha = 1)(7)
+mycolor6<-pal_jco("default", alpha = 1)(10)
+mycolor <-c(mycolor3,mycolor1,mycolor2,mycolor4,mycolor5,mycolor6)
+
+options(Seurat.object.assay.version = "v3")
+
+P01_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S1/filtered_feature_bc_matrix/")
+P02_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S2/filtered_feature_bc_matrix/")
+P03_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S3/filtered_feature_bc_matrix/")
+P04_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S4_1/filtered_feature_bc_matrix/")
+P05_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S5_1/filtered_feature_bc_matrix/")
+P06_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S6/filtered_feature_bc_matrix/")
+P07_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S7/filtered_feature_bc_matrix/")
+P08_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S8/filtered_feature_bc_matrix/")
+P09_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S9/filtered_feature_bc_matrix/")
+P10_L.counts <- Read10X(data.dir = "./AF01/20231024_5sample/F001/LYQ_L/filtered_feature_bc_matrix/")
+P11_L.counts <- Read10X(data.dir = "./AF01/20231201_huaian_1sample/filtered_feature_bc_matrix/")
+P04_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S4_2/filtered_feature_bc_matrix/")
+P05_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S5_2/filtered_feature_bc_matrix/")
+P13_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S10/filtered_feature_bc_matrix/")
+P14_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S15/filtered_feature_bc_matrix/")
+P15_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S12/filtered_feature_bc_matrix/")
+P16_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S11/filtered_feature_bc_matrix/")
+P17_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S17/filtered_feature_bc_matrix/")
+P10_R.counts <- Read10X(data.dir = "./AF01/20231024_5sample/F001/LYQ_R/filtered_feature_bc_matrix/")
+
+P01_L_AF <- CreateSeuratObject(counts = P01_L.counts, project = "P01_L_AF", min.cells = 3, min.features = 200)
+P02_L_AF <- CreateSeuratObject(counts = P02_L.counts, project = "P02_L_AF", min.cells = 3, min.features = 200)
+P03_L_AF <- CreateSeuratObject(counts = P03_L.counts, project = "P03_L_AF", min.cells = 3, min.features = 200)
+P04_L_AF <- CreateSeuratObject(counts = P04_L.counts, project = "P04_L_AF", min.cells = 3, min.features = 200)
+P05_L_AF <- CreateSeuratObject(counts = P05_L.counts, project = "P05_L_AF", min.cells = 3, min.features = 200)
+P06_L_AF <- CreateSeuratObject(counts = P06_L.counts, project = "P06_L_AF", min.cells = 3, min.features = 200)
+P07_L_AF <- CreateSeuratObject(counts = P07_L.counts, project = "P07_L_AF", min.cells = 3, min.features = 200)
+P08_L_AF <- CreateSeuratObject(counts = P08_L.counts, project = "P08_L_AF", min.cells = 3, min.features = 200)
+P09_L_CTRL <- CreateSeuratObject(counts = P09_L.counts, project = "P09_L_CTRL", min.cells = 3, min.features = 200)
+P10_L_CTRL <- CreateSeuratObject(counts = P10_L.counts, project = "P10_L_CTRL", min.cells = 3, min.features = 200)
+P11_L_CTRL <- CreateSeuratObject(counts = P11_L.counts, project = "P11_L_CTRL", min.cells = 3, min.features = 200)
+P04_R_AF <- CreateSeuratObject(counts = P04_R.counts, project = "P04_R_AF", min.cells = 3, min.features = 200)
+P05_R_AF <- CreateSeuratObject(counts = P05_R.counts, project = "P05_R_AF", min.cells = 3, min.features = 200)
+P13_R_AF <- CreateSeuratObject(counts = P13_R.counts, project = "P13_R_AF", min.cells = 3, min.features = 200)
+P14_R_AF <- CreateSeuratObject(counts = P14_R.counts, project = "P14_R_AF", min.cells = 3, min.features = 200)
+P15_R_CTRL <- CreateSeuratObject(counts = P15_R.counts, project = "P15_R_CTRL", min.cells = 3, min.features = 200)
+P16_R_CTRL <- CreateSeuratObject(counts = P16_R.counts, project = "P16_R_CTRL", min.cells = 3, min.features = 200)
+P17_R_CTRL <- CreateSeuratObject(counts = P17_R.counts, project = "P17_R_CTRL", min.cells = 3, min.features = 200)
+P10_R_CTRL <- CreateSeuratObject(counts = P10_R.counts, project = "P10_R_CTRL", min.cells = 3, min.features = 200)
+
+sce.merge <- merge(P01_L_AF, y = c(P02_L_AF, P03_L_AF,P04_L_AF, P05_L_AF, P06_L_AF, P07_L_AF, P08_L_AF, P09_L_CTRL, P10_L_CTRL, P11_L_CTRL, P04_R_AF, P05_R_AF, P13_R_AF, P14_R_AF, P15_R_CTRL, P16_R_CTRL, P17_R_CTRL, P10_R_CTRL), 
+                                add.cell.ids = c('P01_L_AF', 'P02_L_AF', 'P03_L_AF', 'P04_L_AF', 'P05_L_AF', 'P06_L_AF', 'P07_L_AF', 'P08_L_AF', 'P09_L_CTRL', 'P10_L_CTRL', 'P11_L_CTRL', 'P04_R_AF', 'P05_R_AF', 'P13_R_AF', 'P14_R_AF', 'P15_R_CTRL', 'P16_R_CTRL', 'P17_R_CTRL', 'P10_R_CTRL'), 
+                                project = "af")
+
+merged_seurat <- sce.merge
+merged_seurat$log10GenesPerUMI <- log10(merged_seurat$nFeature_RNA) / log10(merged_seurat$nCount_RNA)
+merged_seurat$mitoRatio <- PercentageFeatureSet(object = merged_seurat, pattern = "^MT-")
+merged_seurat$mitoRatio <- merged_seurat@meta.data$mitoRatio / 100
+HB.genes <- c("HBA1","HBA2","HBB","HBD","HBE1","HBG1","HBG2","HBM","HBQ1","HBZ")
+HB_m <- match(HB.genes, rownames(merged_seurat@assays$RNA))
+HB.genes <- rownames(merged_seurat@assays$RNA)[HB_m]
+HB.genes <- HB.genes[!is.na(HB.genes)]
+merged_seurat[["percent.HB"]]<-PercentageFeatureSet(merged_seurat, features=HB.genes)
+
+metadata <- merged_seurat@meta.data
+metadata$sample <- metadata$orig.ident
+metadata <- metadata %>%
+        dplyr::rename(nUMI = nCount_RNA, nGene = nFeature_RNA)
+metadata$group <-  NA
+metadata$group[which(str_detect(metadata$sample, "L_AF"))] <- "AF_left"
+metadata$group[which(str_detect(metadata$sample, "L_CTRL"))] <- "Ctrl_left"
+metadata$group[which(str_detect(metadata$sample, "R_AF"))] <- "AF_right"
+metadata$group[which(str_detect(metadata$sample, "R_CTRL"))] <- "Ctrl_right"
+
+metadata$patient_id <-  NA
+metadata$patient_id[which(str_detect(metadata$sample, "^P01_"))] <- "P01"
+metadata$patient_id[which(str_detect(metadata$sample, "^P02_"))] <- "P02"
+metadata$patient_id[which(str_detect(metadata$sample, "^P03_"))] <- "P03"
+metadata$patient_id[which(str_detect(metadata$sample, "^P04_"))] <- "P04"
+metadata$patient_id[which(str_detect(metadata$sample, "^P05_"))] <- "P05"
+metadata$patient_id[which(str_detect(metadata$sample, "^P06_"))] <- "P06"
+metadata$patient_id[which(str_detect(metadata$sample, "^P07_"))] <- "P07"
+metadata$patient_id[which(str_detect(metadata$sample, "^P08_"))] <- "P08"
+metadata$patient_id[which(str_detect(metadata$sample, "^P09_"))] <- "P09"
+metadata$patient_id[which(str_detect(metadata$sample, "^P10_"))] <- "P10"
+metadata$patient_id[which(str_detect(metadata$sample, "^P11_"))] <- "P11"
+metadata$patient_id[which(str_detect(metadata$sample, "^P13_"))] <- "P13"
+metadata$patient_id[which(str_detect(metadata$sample, "^P14_"))] <- "P14"
+metadata$patient_id[which(str_detect(metadata$sample, "^P15_"))] <- "P15"
+metadata$patient_id[which(str_detect(metadata$sample, "^P16_"))] <- "P16"
+metadata$patient_id[which(str_detect(metadata$sample, "^P17_"))] <- "P17"
+merged_seurat@meta.data <- metadata
+
+filtered_seurat <- subset(x = merged_seurat, 
+                         subset= (nUMI > 500) & 
+                           (nGene > 250) & 
+                           (log10GenesPerUMI > 0.80) & 
+                           (mitoRatio < 0.20) )
+
+scRNAseqData <- SplitObject(filtered_seurat, split.by = "sample")
+
+processed_objs <- list()
+ for (i in seq_along(scRNAseqData)) {    
+     current_list <- names(scRNAseqData)[i]     
+     current_data <- scRNAseqData[[current_list]]    
+     current_data <- subset(x = current_data,
+                            subset= ( nUMI >= mean(current_data@meta.data$nUMI) -2*sd(current_data@meta.data$nUMI)) & 
+                                ( nUMI <= mean(current_data@meta.data$nUMI) +2*sd(current_data@meta.data$nUMI)) &  
+                                ( nGene >= mean(current_data@meta.data$nGene) -2*sd(current_data@meta.data$nGene)) & 
+                                ( nGene <= mean(current_data@meta.data$nGene) +2*sd(current_data@meta.data$nGene)))
+processed_objs[[current_list]] <- current_data
+ }
+
+qc_objs <- list()
+for (i in seq_along(processed_objs)) {     
+     current_list <- names(processed_objs)[i]     
+     current_data <- processed_objs[[current_list]]     
+     current_data <- NormalizeData(current_data)
+     current_data <- FindVariableFeatures(current_data, selection.method = "vst", nfeatures = 2000)
+     all.genes <- rownames(current_data)
+     current_data <- ScaleData(current_data, features = all.genes)
+     current_data <- RunPCA(current_data)
+     current_data <- RunTSNE(current_data, dims = 1:30)
+qc_objs[[current_list]] <- current_data
+ }
+
+Find_doublet <- function(data){
+sweep.res.list <- paramSweep_v3(data, PCs = 1:30, sct = FALSE)
+sweep.stats <- summarizeSweep(sweep.res.list, GT = FALSE)
+bcmvn <- find.pK(sweep.stats)
+nExp_poi <- round(0.05*ncol(data))
+p<-as.numeric(as.vector(bcmvn[bcmvn$MeanBC==max(bcmvn$MeanBC),]$pK))
+data <- doubletFinder_v3(data, PCs = 1:30, pN = 0.25, pK = p, nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
+colnames(data@meta.data)[ncol(data@meta.data)] = "doublet_info"
+return(data)
+}
+
+
+df_objs <- list()
+for (i in seq_along(qc_objs)) {     
+     current_list <- names(qc_objs)[i]     
+     current_data <- qc_objs[[current_list]]     
+     current_data <- Find_doublet(current_data)
+     current_data <-subset(current_data,subset=doublet_info=="Singlet")
+df_objs[[current_list]] <- current_data
+ }
+
+P01_L_AF <-  df_objs$P01_L_AF
+P02_L_AF <-  df_objs$P02_L_AF
+P03_L_AF <-  df_objs$P03_L_AF
+P04_L_AF <-  df_objs$P04_L_AF
+P05_L_AF <-  df_objs$P05_L_AF
+P06_L_AF <-  df_objs$P06_L_AF
+P07_L_AF <-  df_objs$P07_L_AF
+P08_L_AF <-  df_objs$P08_L_AF
+P09_L_CTRL <-  df_objs$P09_L_CTRL
+P10_L_CTRL <-  df_objs$P10_L_CTRL
+P11_L_CTRL <-  df_objs$P11_L_CTRL
+P04_R_AF <-  df_objs$P04_R_AF
+P05_R_AF <-  df_objs$P05_R_AF
+P13_R_AF <-  df_objs$P13_R_AF
+P14_R_AF <-  df_objs$P14_R_AF
+P15_R_CTRL <-  df_objs$P15_R_CTRL
+P16_R_CTRL <-  df_objs$P16_R_CTRL
+P17_R_CTRL <-  df_objs$P17_R_CTRL
+P10_R_CTRL <-  df_objs$P10_R_CTRL
+
+haf <- merge(P01_L_AF, y = c(P02_L_AF, P03_L_AF,P04_L_AF, P05_L_AF, P06_L_AF, P07_L_AF, P08_L_AF, P09_L_CTRL, P10_L_CTRL, P11_L_CTRL, P04_R_AF, P05_R_AF, P13_R_AF, P14_R_AF, P15_R_CTRL, P16_R_CTRL, P17_R_CTRL, P10_R_CTRL), 
+                                add.cell.ids = c('P01_L_AF', 'P02_L_AF', 'P03_L_AF', 'P04_L_AF', 'P05_L_AF', 'P06_L_AF', 'P07_L_AF', 'P08_L_AF', 'P09_L_CTRL', 'P10_L_CTRL', 'P11_L_CTRL', 'P04_R_AF', 'P05_R_AF', 'P13_R_AF', 'P14_R_AF', 'P15_R_CTRL', 'P16_R_CTRL', 'P17_R_CTRL', 'P10_R_CTRL'), 
+                                project = "af")
+
+saveRDS(haf, file = "haf.RDS")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
