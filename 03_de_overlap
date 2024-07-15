@@ -207,6 +207,7 @@ dir.create("DE_analysis/AF_unique_genes/")
 cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
 direction <- c("Up","Up", "Up", "Up", "Up", "Up", "Up", "Up", "Up" )
 n_genes <- c()
+signature_AF_left_up <- list()
 
 data_AFleft_Ctrlleft_AFleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "AFleft")
 data_AFright_Ctrlright_AFright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "AFright")
@@ -223,17 +224,26 @@ for (i in cell_types) {
 
     #desired_genes <- setdiff(Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset)),
                              #Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset, data_AFright_Ctrlright_AFright_subset)))
+    signature_AF_left_up[[i]] <- desired_genes
     n_desired_genes <- length(desired_genes) 
     n_genes[j] <- n_desired_genes
     j <- j + 1
 }
 df_up <- data.frame(cell_types,direction,n_genes)
 
+flie=list()
+for(i in 1:9){
+flie[[i]]=paste("signature_AF_left_up_",cell_types[i], '.txt', sep="" )
+write.table(signature_AF_left_up[[i]],flie[[i]], row.names=FALSE, col.names=FALSE)
+}
+ 
+
 # Genes Down
 # Initialize lists
 cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
 direction <- c("Down","Down", "Down", "Down", "Down", "Down", "Down", "Down",   "Down")
 n_genes <- c()
+signature_AF_left_down <- list()
 
 data_AFleft_Ctrlleft_Ctrlleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "Ctrlleft")
 data_AFright_Ctrlright_Ctrlright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "Ctrlright")
@@ -248,11 +258,18 @@ for (i in cell_types) {
     desired_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset , data_AFright_Ctrlright_Ctrlright_subset)
     #desired_genes <- setdiff(Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset)),
                              #Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset, data_AFright_Ctrlright_Ctrlright_subset)))
+    signature_AF_left_down[[i]] <- desired_genes
     n_desired_genes <- length(desired_genes) 
     n_genes[j] <- n_desired_genes
     j <- j + 1
 }
 df_down <- data.frame(cell_types,direction,n_genes)
+
+flie=list()
+for(i in 1:9){
+flie[[i]]=paste("signature_AF_left_down_",cell_types[i], '.txt', sep="" )
+write.table(signature_AF_left_down[[i]],flie[[i]], row.names=FALSE, col.names=FALSE)
+}
 
 df <- rbind(df_up, df_down)
 df$n_genes <- as.numeric(df$n_genes)
@@ -279,6 +296,7 @@ n_uniquegenes_AFleft <- df_Count
 cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
 direction <- c("Up","Up", "Up", "Up", "Up", "Up", "Up", "Up",   "Up")
 n_genes <- c()
+signature_AF_right_up <- list()
 
 data_AFleft_Ctrlleft_AFleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "AFleft")
 data_AFright_Ctrlright_AFright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "AFright")
@@ -294,17 +312,25 @@ for (i in cell_types) {
 
     #desired_genes <- setdiff(Reduce(intersect,list(data_AFright_Ctrlright_AFright_subset, data_AFleft_AFright_AFright_subset)),
                              #Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFright_subset, data_AFright_Ctrlright_AFright_subset)))
+    signature_AF_right_up[[i]] <- desired_genes
     n_desired_genes <- length(desired_genes) 
     n_genes[j] <- n_desired_genes
     j <- j + 1
 }
 df_up <- data.frame(cell_types,direction,n_genes)
 
+flie=list()
+for(i in 1:9){
+flie[[i]]=paste("signature_AF_right_up_",cell_types[i], '.txt', sep="" )
+write.table(signature_AF_right_up[[i]],flie[[i]], row.names=FALSE, col.names=FALSE)
+}
+
 # Genes Down
 # Initialize lists
 cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
 direction <- c("Down","Down", "Down", "Down", "Down", "Down", "Down", "Down",   "Down")
 n_genes <- c()
+signature_AF_right_down <- list()
 
 data_AFleft_Ctrlleft_Ctrlleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "Ctrlleft")
 data_AFright_Ctrlright_Ctrlright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "Ctrlright")
@@ -320,11 +346,18 @@ for (i in cell_types) {
 
    # desired_genes <- setdiff(Reduce(intersect,list(data_AFright_Ctrlright_Ctrlright_subset, data_AFleft_AFright_AFleft_subset)),
                              #Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFleft_subset, data_AFright_Ctrlright_Ctrlright_subset)))
+    signature_AF_right_down[[i]] <- desired_genes
     n_desired_genes <- length(desired_genes) 
     n_genes[j] <- n_desired_genes
     j <- j + 1
 }
 df_down <- data.frame(cell_types,direction,n_genes)
+
+flie=list()
+for(i in 1:9){
+flie[[i]]=paste("signature_AF_right_down_",cell_types[i], '.txt', sep="" )
+write.table(signature_AF_right_down[[i]],flie[[i]], row.names=FALSE, col.names=FALSE)
+}
 
 df <- rbind(df_up, df_down)
 df$n_genes <- as.numeric(df$n_genes)
