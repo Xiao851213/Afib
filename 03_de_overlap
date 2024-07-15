@@ -522,6 +522,89 @@ ggsave(p3,  filename = paste("./DE_analysis/AF_unique_genes/Cross_upset_AFright_
 #####
 
 
+#####  unique_AF
+# Genes Up
+# Initialize lists
+cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
+direction <- c("Up","Up", "Up", "Up", "Up", "Up", "Up",  "Up", "Up")
+n_genes <- c()
+unique_AF_up <- list()
+
+data_AFleft_Ctrlleft_AFleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "AFleft")
+data_AFright_Ctrlright_AFright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "AFright")
+data_AFleft_AFright_AFright <- filter(data_AFleft_AFright, data_AFleft_AFright$cluster == "AFright")
+
+j <- 1
+for (i in cell_types) {
+    data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == i)$gene
+    data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == i)$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == i)$gene
+    
+    desired_genes <-  Reduce(intersect,list(data_AFright_Ctrlright_AFright_subset, data_AFleft_Ctrlleft_AFleft_subset)) 
+    unique_AF_up[[i]] <- desired_genes
+    n_desired_genes <- length(desired_genes) 
+    n_genes[j] <- n_desired_genes
+    j <- j + 1
+}
+df_up <- data.frame(cell_types,direction,n_genes)
+
+flie=list()
+for(i in 1:9){
+flie[[i]]=paste("unique_AF_up_",cell_types[i], '.txt', sep="" )
+write.table(unique_AF_up[[i]],flie[[i]], row.names=FALSE, col.names=FALSE)
+}
+
+# Genes Down
+# Initialize lists
+cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
+direction <- c("Down","Down", "Down", "Down", "Down", "Down", "Down", "Down",   "Down")
+n_genes <- c()
+unique_AF_down <- list()
+
+data_AFleft_Ctrlleft_Ctrlleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "Ctrlleft")
+data_AFright_Ctrlright_Ctrlright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "Ctrlright")
+data_AFleft_AFright_AFleft <- filter(data_AFleft_AFright, data_AFleft_AFright$cluster == "AFleft")
+
+j <- 1
+for (i in cell_types) {
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == i)$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == i)$gene
+    data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == i)$gene
+    
+    desired_genes <-  Reduce(intersect,list(data_AFright_Ctrlright_Ctrlright_subset, data_AFleft_Ctrlleft_Ctrlleft_subset)) 
+    unique_AF_down[[i]] <- desired_genes
+    n_desired_genes <- length(desired_genes) 
+    n_genes[j] <- n_desired_genes
+    j <- j + 1
+}
+df_down <- data.frame(cell_types,direction,n_genes)
+
+flie=list()
+for(i in 1:9){
+flie[[i]]=paste("unique_AF_down_",cell_types[i], '.txt', sep="" )
+write.table(unique_AF_down[[i]],flie[[i]], row.names=FALSE, col.names=FALSE)
+}
+
+df <- rbind(df_up, df_down)
+df$n_genes <- as.numeric(df$n_genes)
+df$sumGenes <- df_up$n_genes + df_down$n_genes
+df_Count <- df[order(-df$sumGenes),]
+
+df_Count <- data.frame(df_Count)
+df_Count$cell_types <- factor(df_Count$cell_types, levels=c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid","Mediate",  "Mesothelial", "Myeloid", "Mural", "Neuron"))
+
+p1 <- ggplot(df_Count, aes(x = reorder(cell_types,-n_genes), y = n_genes, fill = direction)) + geom_col() + labs(x="Cell Type", y="#Genes", fill="Significance") + scale_fill_manual(values = c("dodgerblue4", "red3")) + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))+
+ggtitle('Unique_AF')
+ggsave(p1,  filename = paste("./DE_analysis/AF_unique_genes/ngenes_AF_narrow.pdf",sep=""), height = 4, width = 5)
+
+write.csv(df_Count, "./DE_analysis/AF_unique_genes/n_uniquegenes_AF_narrow.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+##### 
+
+
+
 ##### Venn Diagrams
 
 # Prepare a palette of 3 colors with R colorbrewer:
