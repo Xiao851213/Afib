@@ -1,0 +1,111 @@
+setwd("E:/Work01/AF01/Rdata/Deg/")
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(ggplot2)
+library(pheatmap)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(RColorBrewer)
+library(dplyr)
+library(scales)
+library(data.table)
+library(stats)
+library("Nebulosa")
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+library(magrittr)
+library(dplyr)
+library(VennDiagram)
+library(ggrepel)
+
+#### AF_left vs AF_right
+Adipocyte <- read_delim("./DE_analysis/AFleft_AFright/Adipocyte_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Adipocyte$cell <- "Adipocyte"
+Adipocyte$sigpvalue <- ifelse(Adipocyte$padj < 0.05, "p < 0.05","p > 0.05")
+Adipocyte$sig <- ifelse(Adipocyte$padj < 0.05 & abs(Adipocyte$log2FoldChange) > 0, "Significant","Not Significant")
+
+Cardiomyocyte <- read_delim("./DE_analysis/AFleft_AFright/Cardiomyocyte_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Cardiomyocyte$cell <- "Cardiomyocyte"
+Cardiomyocyte$sigpvalue <- ifelse(Cardiomyocyte$padj < 0.05, "p < 0.05","p > 0.05")
+Cardiomyocyte$sig <- ifelse(Cardiomyocyte$padj < 0.05 & abs(Cardiomyocyte$log2FoldChange) > 0, "Significant","Not Significant")
+
+Endothelial <- read_delim("./DE_analysis/AFleft_AFright/Endothelial_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Endothelial$cell <- "Endothelial"
+Endothelial$sigpvalue <- ifelse(Endothelial$padj < 0.05, "p < 0.05","p > 0.05")
+Endothelial$sig <- ifelse(Endothelial$padj < 0.05 & abs(Endothelial$log2FoldChange) > 0, "Significant","Not Significant")
+
+Fibroblast <- read_delim("./DE_analysis/AFleft_AFright/Fibroblast_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Fibroblast$cell <- "Fibroblast"
+Fibroblast$sigpvalue <- ifelse(Fibroblast$padj < 0.05, "p < 0.05","p > 0.05")
+Fibroblast$sig <- ifelse(Fibroblast$padj < 0.05 & abs(Fibroblast$log2FoldChange) > 0, "Significant","Not Significant")
+
+Lymphoid <- read_delim("./DE_analysis/AFleft_AFright/Lymphoid_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Lymphoid$cell <- "Lymphoid"
+Lymphoid$sigpvalue <- ifelse(Lymphoid$padj < 0.05, "p < 0.05","p > 0.05")
+Lymphoid$sig <- ifelse(Lymphoid$padj < 0.05 & abs(Lymphoid$log2FoldChange) > 0, "Significant","Not Significant")
+ 
+Mesothelial <- read_delim("./DE_analysis/AFleft_AFright/Mesothelial_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Mesothelial$cell <- "Mesothelial"
+Mesothelial$sigpvalue <- ifelse(Mesothelial$padj < 0.05, "p < 0.05","p > 0.05")
+Mesothelial$sig <- ifelse(Mesothelial$padj < 0.05 & abs(Mesothelial$log2FoldChange) > 0, "Significant","Not Significant")
+
+Myeloid <- read_delim("./DE_analysis/AFleft_AFright/Myeloid_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Myeloid$cell <- "Myeloid"
+Myeloid$sigpvalue <- ifelse(Myeloid$padj < 0.05, "p < 0.05","p > 0.05")
+Myeloid$sig <- ifelse(Myeloid$padj < 0.05 & abs(Myeloid$log2FoldChange) > 0, "Significant","Not Significant")
+
+Mural <- read_delim("./DE_analysis/AFleft_AFright/Mural_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Mural$cell <- "Mural"
+Mural$sigpvalue <- ifelse(Mural$padj < 0.05, "p < 0.05","p > 0.05")
+Mural$sig <- ifelse(Mural$padj < 0.05 & abs(Mural$log2FoldChange) > 0, "Significant","Not Significant")
+
+Neuron <- read_delim("./DE_analysis/AFleft_AFright/Neuron_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Neuron$cell <- "Neuron"
+Neuron$sigpvalue <- ifelse(Neuron$padj < 0.05, "p < 0.05","p > 0.05")
+Neuron$sig <- ifelse(Neuron$padj < 0.05 & abs(Neuron$log2FoldChange) > 0, "Significant","Not Significant")
+
+
+#create data frame
+data <- data.frame(rbind(Adipocyte, Cardiomyocyte, Endothelial, Fibroblast, Lymphoid, Mesothelial, Myeloid, Mural, Neuron))
+data$cell <- factor(data$cell, levels = c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid", 'Mediate', "Mesothelial", "Myeloid", "Mural", "Neuron"))
+table(data$cell, data$sig)
+
+df_Count <- data %>% group_by(sig, cell) %>% dplyr::count()
+df_Count <- data.frame(df_Count)
+
+x <- df_Count[with(df_Count,order(n,decreasing = T)) ,][df_Count[with(df_Count,order(n, decreasing = T)) ,]$sig=="Significant",]$cell
+df_Count$cell <- factor(df_Count$cell, levels = x)
+
+data$cell <- factor(data$cell, levels = x)
+p1 <-   ggplot(data, aes(x=cell, y=log2FoldChange, fill=cell, color=sig)) +
+  geom_jitter(size=1, alpha=0.5, position=position_jitter(0.2)) + 
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), legend.position="none") + scale_y_continuous(limits = c(-6, 6)) +
+  ggtitle("Pseudobulk DE AF_left vs AF_right") +
+  xlab("Cell types") +
+  scale_shape_manual(values=c(1,1))+
+  scale_color_manual(values=c("grey", "red")) 
+ggsave(p1,  filename = paste("./Pseudobulk_DE_AFleft_AFright_Volcano.pdf",sep=""), height = 4, width = 5)
+
+data$cluster <- ifelse(data$log2FoldChange > 0, "AF_left", "AF_right")
+df_Count <- data %>% group_by(sig, cell) %>% dplyr::count(cluster)
+df_Count <- data.frame(df_Count)
+df_Count$cell <- factor(df_Count$cell)
+df_Count <- filter(df_Count, df_Count$sig == "Significant")
+p2 <-   ggplot(df_Count, aes(x = cell, y = n, fill = cluster)) + geom_col() + 
+  labs(x="Cell Type", y="#Genes", fill="Significance") + 
+  scale_fill_manual(values = c("dodgerblue4", "red3")) + 
+  ggtitle("Pseudobulk DE AF_left vs AF_right") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+ggsave(p2,  filename = paste("./Pseudobulk_DE_AFleft_AFright_Bar.pdf",sep=""), height = 4, width = 5)
+
+
