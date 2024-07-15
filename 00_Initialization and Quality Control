@@ -37,7 +37,7 @@ library(magrittr)
 font_add('Arial','/Library/Fonts/Arial.ttf')
 showtext_auto()
 
-setwd("./Rdata/Total/")
+setwd("D:/Work01/AF01/Rdata/Total/")
 
 mycolor1<-pal_npg("nrc", alpha = 1)(10)
 mycolor2<-pal_aaas("default", alpha = 1)(10)
