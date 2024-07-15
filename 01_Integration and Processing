@@ -1227,10 +1227,11 @@ saveRDS(haf_AF_right, file = "haf_AF_right.rds")
 saveRDS(haf_Ctrl_left, file = "haf_Ctrl_left.rds")
 saveRDS(haf_Ctrl_right, file = "haf_Ctrl_right.rds")
 
-haf_AF_left <- readRDS("E:/Work01/AF01/Rdata/Total/haf_AF_left.rds")
-haf_AF_right <- readRDS("E:/Work01/AF01/Rdata/Total/haf_AF_right.rds")
-haf_Ctrl_left <- readRDS("E:/Work01/AF01/Rdata/Total/haf_Ctrl_left.rds")
-haf_Ctrl_right <- readRDS("E:/Work01/AF01/Rdata/Total/haf_Ctrl_right.rds")
+#setwd("D:/Work/AF/Rdata/Total/")
+#haf_AF_left <- readRDS("./haf_AF_left.rds")
+#haf_AF_right <- readRDS("./haf_AF_right.rds")
+#haf_Ctrl_left <- readRDS("./haf_Ctrl_left.rds")
+#haf_Ctrl_right <- readRDS("./haf_Ctrl_right.rds")
 
 #net plot and scatter plot including both left and right heart 
 object.list <- list(AF_left = haf_AF_left, AF_right = haf_AF_right, Ctrl_left = haf_Ctrl_left, Ctrl_right = haf_Ctrl_right )
