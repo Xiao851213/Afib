@@ -48,7 +48,7 @@ mycolor <-c(mycolor3,mycolor1,mycolor2,mycolor4,mycolor5,mycolor6)
 
 options(Seurat.object.assay.version = "v3")
 set.seed(12345)
-haf <- readRDS("D:/Work01/AF01/Rdata/haf.RDS")
+haf <- readRDS("./Rdata/haf.RDS")
 
 haf <- NormalizeData(haf)
 haf <- FindVariableFeatures(haf, selection.method = "vst", nfeatures = 3000)
