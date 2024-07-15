@@ -47,7 +47,7 @@ mycolor6<-pal_jco("default", alpha = 1)(10)
 mycolor <-c(mycolor3,mycolor1,mycolor2,mycolor4,mycolor5,mycolor6)
 
 options(Seurat.object.assay.version = "v3")
-
+set.seed(12345)
 haf <- readRDS("D:/Work01/AF01/Rdata/haf.RDS")
 
 haf <- NormalizeData(haf)
