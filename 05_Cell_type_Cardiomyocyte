@@ -655,6 +655,113 @@ ggsave(p1,file="Z_haf_Cardiomyocyte_Ctrl_right.pdf",width = 5, height = 4)
 
 
 
+# signature genes 
+sample <- haf_Cardiomyocyte
+DefaultAssay(sample) <- "RNA"
+expdata <- GetAssayData(sample)
+
+i <- "Cardiomyocyte"
+
+Pop1 <- desired_genes
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+
+sample@meta.data$signature_AF_left_up_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "signature_AF_left_up_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_left_up.pdf",width = 5, height = 4)
+
+sample@meta.data$signature_AF_left_down_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "signature_AF_left_down_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_left_down.pdf",width = 5, height = 4)
+
+sample@meta.data$signature_AF_right_up_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "MTRNR2L12",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_right_up.pdf",width = 5, height = 4)
+
+sample@meta.data$signature_AF_right_down_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "AC025366.1",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_right_down.pdf",width = 5, height = 4)
+
+
+i <- "Cardiomyocyte"
+
+Pop1 <- desired_genes
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+
+sample@meta.data$unique_AF_left_up_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "unique_AF_left_up_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_unique_AF_left_up.pdf",width = 5, height = 4)
+
+sample@meta.data$unique_AF_left_down_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "unique_AF_left_down_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_unique_AF_left_down.pdf",width = 5, height = 4)
+ 
+sample@meta.data$unique_AF_up_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "unique_AF_up_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_unique_AF_up.pdf",width = 5, height = 4)
+
+Signature_AF_right_up  <-   c("NPPB", "MTRNR2L12", "TTTY14"   )
+Signature_AF_right_down  <-   c("LINC01060",  "SCGN", "AC025366.1")
+#Signature_AF_up <- c("LINC01479", "IFNG-AS1" )
+#unique <- c("MTRNR2L12", "LINC01479", "IFNG-AS1",  "ESRRB" )
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = Signature_AF_right_up, group.by = 'cell_state')  + ggtitle('Signature_AF_right_up')  + RotatedAxis() #+ggplot2:::coord_flip()  
+p1
+ggsave(plot=p1, filename="haf_CM_dot_Signature_AF_right_up.pdf",width = 4, height = 4)
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = Signature_AF_right_down, group.by = 'cell_state')  + ggtitle('Signature_AF_right_down')  + RotatedAxis() #+ggplot2:::coord_flip()  
+p1
+ggsave(plot=p1, filename="haf_CM_dot_Signature_AF_right_down.pdf",width = 4, height = 4)
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = Signature_AF_up, group.by = 'cell_state')  + RotatedAxis()  + ggtitle('Unique_AF_up')  #+ggplot2:::coord_flip() 
+p1
+ggsave(plot=p1, filename="haf_CM_dot_Signature_AF_up.pdf",width = 3.5, height = 4)
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = 'MYH7', group.by = 'cell_state')  #+ ggtitle('Signature_AF_right_up')  #+ RotatedAxis() +ggplot2:::coord_flip()  
+p1
+ggsave(plot=p1, filename="haf_CM_dot_MYH7.pdf",width = 3.5, height = 4)
+
+i <- "Cardiomyocyte"
+#unique_AF_left_up  <-   c("LINC02232",  "AC008571.2", "GABRA6" )# blank
+unique_AF_left_down  <-   c("AL445426.1", "SLCO4A1"  )
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = unique_AF_left_up, group.by = 'cell_state')  + ggtitle('Unique_AF_left_up')  + RotatedAxis() #+ggplot2:::coord_flip()  
+p1
+ggsave(plot=p1, filename="haf_CM_dot_unique_AF_left_up.pdf",width = 4, height = 4)
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = unique_AF_left_down, group.by = 'cell_state')  + ggtitle('Unique_AF_left_down')  + RotatedAxis() #+ggplot2:::coord_flip()  
+p1
+ggsave(plot=p1, filename="haf_CM_dot_unique_AF_left_down.pdf",width = 3.5, height = 4)
+
+unique_AF_right_down  <-   "LINC01060"
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = unique_AF_right_down, group.by = 'cell_state')  + ggtitle('Unique_AF_right_down')  + RotatedAxis() #+ggplot2:::coord_flip()  
+p1
+ggsave(plot=p1, filename="haf_CM_dot_unique_AF_right_down.pdf",width = 3.5, height = 4)
+
+
+
 #CytoTRACE score
 library(CytoTRACE)
 expr_matrix <-as.matrix(haf_Cardiomyocyte@assays$RNA@counts)
