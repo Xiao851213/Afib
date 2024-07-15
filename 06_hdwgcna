@@ -1,0 +1,7 @@
+
+seurat_obj <- haf_Adip
+
+library(Seurat)
+library(WGCNA)
+library(hdWGCNA) 
+options(Seurat.object.assay.version = "v3")
