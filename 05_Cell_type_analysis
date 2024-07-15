@@ -1,3 +1,5 @@
+#each cell type was analyzed in similar steps; this code uses cardiomyocyte data as an example.
+
 library(Seurat)
 library(ggplot2)
 library(stringr)
