@@ -1448,7 +1448,7 @@ for (i in seq_along(haf.list.celltype)) {
      all.genes <- rownames(current_data)
      current_data <- FindVariableFeatures(current_data, selection.method = "vst", nfeatures = 3000)
      current_data <- ScaleData(current_data, features = all.genes)
-     current_data <- RunPCA(current_data)
+     current_data <- RunPCA(current_data, features = VariableFeatures(object = current_data))
      current_data <- RunHarmony(current_data,plot_convergence = TRUE, lambda = 0.5,group.by.vars = 'sample')
      current_data <- FindNeighbors(current_data, reduction = "harmony", dims = 1:30)
      current_data <- FindClusters(current_data, resolution = 0.1)
