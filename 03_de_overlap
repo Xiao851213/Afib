@@ -1,4 +1,7 @@
 
+
+setwd("D:/Work/AF/Rdata/Deg/")
+
 library(Seurat)
 library(ggplot2)
 library(patchwork)
@@ -26,9 +29,7 @@ library(dplyr)
 library(VennDiagram)
 library(ggrepel)
 
-setwd("D:/Work/AF/Rdata/Deg/")
  
-options(Seurat.object.assay.version = "v3")
 set.seed(12345)
 
 
@@ -509,7 +510,7 @@ p1 <- venn.diagram(
                    data_AFright_Ctrlright_subset),
         category.names = c("AF_left vs Ctrl_left" , "AF_right vs Ctrl_right"),
         filename = NULL, 
-
+scale = F,
         lwd = 2,
         lty = 'blank',
         fill = myCol,
