@@ -1,5 +1,480 @@
 
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(ggpubr)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(ggplot2)
+library(pheatmap)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(RColorBrewer)
+library(dplyr)
+library(scales)
+library(data.table)
+library(stats)
+library("Nebulosa")
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+library(magrittr)
+library(dplyr)
+library(VennDiagram)
+library(ggrepel)
+
 setwd("D:/Work/AF/Rdata/Deg/")
  
 options(Seurat.object.assay.version = "v3")
 set.seed(12345)
+
+
+##### AFleft vs AFright
+Adipocyte <- read_delim("./DE_analysis/AFleft_AFright/Adipocyte_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Adipocyte$cell <- "Adipocyte"
+Adipocyte$sigpvalue <- ifelse(Adipocyte$padj < 0.05, "p < 0.05","p > 0.05")
+Adipocyte$sig <- ifelse(Adipocyte$padj < 0.05 & abs(Adipocyte$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Cardiomyocyte <- read_delim("./DE_analysis/AFleft_AFright/Cardiomyocyte_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Cardiomyocyte$cell <- "Cardiomyocyte"
+Cardiomyocyte$sigpvalue <- ifelse(Cardiomyocyte$padj < 0.05, "p < 0.05","p > 0.05")
+Cardiomyocyte$sig <- ifelse(Cardiomyocyte$padj < 0.05 & abs(Cardiomyocyte$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Endothelial <- read_delim("./DE_analysis/AFleft_AFright/Endothelial_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Endothelial$cell <- "Endothelial"
+Endothelial$sigpvalue <- ifelse(Endothelial$padj < 0.05, "p < 0.05","p > 0.05")
+Endothelial$sig <- ifelse(Endothelial$padj < 0.05 & abs(Endothelial$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Fibroblast <- read_delim("./DE_analysis/AFleft_AFright/Fibroblast_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Fibroblast$cell <- "Fibroblast"
+Fibroblast$sigpvalue <- ifelse(Fibroblast$padj < 0.05, "p < 0.05","p > 0.05")
+Fibroblast$sig <- ifelse(Fibroblast$padj < 0.05 & abs(Fibroblast$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Lymphoid <- read_delim("./DE_analysis/AFleft_AFright/Lymphoid_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Lymphoid$cell <- "Lymphoid"
+Lymphoid$sigpvalue <- ifelse(Lymphoid$padj < 0.05, "p < 0.05","p > 0.05")
+Lymphoid$sig <- ifelse(Lymphoid$padj < 0.05 & abs(Lymphoid$log2FoldChange) > 0.58, "Significant","Not Significant")
+ 
+Mesothelial <- read_delim("./DE_analysis/AFleft_AFright/Mesothelial_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Mesothelial$cell <- "Mesothelial"
+Mesothelial$sigpvalue <- ifelse(Mesothelial$padj < 0.05, "p < 0.05","p > 0.05")
+Mesothelial$sig <- ifelse(Mesothelial$padj < 0.05 & abs(Mesothelial$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Myeloid <- read_delim("./DE_analysis/AFleft_AFright/Myeloid_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Myeloid$cell <- "Myeloid"
+Myeloid$sigpvalue <- ifelse(Myeloid$padj < 0.05, "p < 0.05","p > 0.05")
+Myeloid$sig <- ifelse(Myeloid$padj < 0.05 & abs(Myeloid$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Mural <- read_delim("./DE_analysis/AFleft_AFright/Mural_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Mural$cell <- "Mural"
+Mural$sigpvalue <- ifelse(Mural$padj < 0.05, "p < 0.05","p > 0.05")
+Mural$sig <- ifelse(Mural$padj < 0.05 & abs(Mural$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Neuron <- read_delim("./DE_analysis/AFleft_AFright/Neuron_left_vs_right_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Neuron$cell <- "Neuron"
+Neuron$sigpvalue <- ifelse(Neuron$padj < 0.05, "p < 0.05","p > 0.05")
+Neuron$sig <- ifelse(Neuron$padj < 0.05 & abs(Neuron$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+#create data frame
+data <- data.frame(rbind(Adipocyte, Cardiomyocyte, Endothelial, Fibroblast, Lymphoid, Mesothelial, Myeloid, Mural, Neuron))
+data$cell <- factor(data$cell, levels = c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid", "Mesothelial", "Myeloid", "Mural", "Neuron"))
+
+data$cluster <- ifelse(data$log2FoldChange > 0, "AFleft", "AFright")
+data_AFleft_AFright <- filter(data, data$sig == "Significant")
+######
+
+
+
+##### AFleft vs Ctrlleft
+Adipocyte <- read_delim("./DE_analysis/AFleft_Ctrlleft/Adipocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Adipocyte$cell <- "Adipocyte"
+Adipocyte$sigpvalue <- ifelse(Adipocyte$padj < 0.05, "p < 0.05","p > 0.05")
+Adipocyte$sig <- ifelse(Adipocyte$padj < 0.05 & abs(Adipocyte$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Cardiomyocyte <- read_delim("./DE_analysis/AFleft_Ctrlleft/Cardiomyocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Cardiomyocyte$cell <- "Cardiomyocyte"
+Cardiomyocyte$sigpvalue <- ifelse(Cardiomyocyte$padj < 0.05, "p < 0.05","p > 0.05")
+Cardiomyocyte$sig <- ifelse(Cardiomyocyte$padj < 0.05 & abs(Cardiomyocyte$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Endothelial <- read_delim("./DE_analysis/AFleft_Ctrlleft/Endothelial_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Endothelial$cell <- "Endothelial"
+Endothelial$sigpvalue <- ifelse(Endothelial$padj < 0.05, "p < 0.05","p > 0.05")
+Endothelial$sig <- ifelse(Endothelial$padj < 0.05 & abs(Endothelial$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Fibroblast <- read_delim("./DE_analysis/AFleft_Ctrlleft/Fibroblast_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Fibroblast$cell <- "Fibroblast"
+Fibroblast$sigpvalue <- ifelse(Fibroblast$padj < 0.05, "p < 0.05","p > 0.05")
+Fibroblast$sig <- ifelse(Fibroblast$padj < 0.05 & abs(Fibroblast$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Lymphoid <- read_delim("./DE_analysis/AFleft_Ctrlleft/Lymphoid_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Lymphoid$cell <- "Lymphoid"
+Lymphoid$sigpvalue <- ifelse(Lymphoid$padj < 0.05, "p < 0.05","p > 0.05")
+Lymphoid$sig <- ifelse(Lymphoid$padj < 0.05 & abs(Lymphoid$log2FoldChange) > 0.58, "Significant","Not Significant")
+ 
+Mesothelial <- read_delim("./DE_analysis/AFleft_Ctrlleft/Mesothelial_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Mesothelial$cell <- "Mesothelial"
+Mesothelial$sigpvalue <- ifelse(Mesothelial$padj < 0.05, "p < 0.05","p > 0.05")
+Mesothelial$sig <- ifelse(Mesothelial$padj < 0.05 & abs(Mesothelial$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Myeloid <- read_delim("./DE_analysis/AFleft_Ctrlleft/Myeloid_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Myeloid$cell <- "Myeloid"
+Myeloid$sigpvalue <- ifelse(Myeloid$padj < 0.05, "p < 0.05","p > 0.05")
+Myeloid$sig <- ifelse(Myeloid$padj < 0.05 & abs(Myeloid$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Mural <- read_delim("./DE_analysis/AFleft_Ctrlleft/Mural_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Mural$cell <- "Mural"
+Mural$sigpvalue <- ifelse(Mural$padj < 0.05, "p < 0.05","p > 0.05")
+Mural$sig <- ifelse(Mural$padj < 0.05 & abs(Mural$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Neuron <- read_delim("./DE_analysis/AFleft_Ctrlleft/Neuron_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Neuron$cell <- "Neuron"
+Neuron$sigpvalue <- ifelse(Neuron$padj < 0.05, "p < 0.05","p > 0.05")
+Neuron$sig <- ifelse(Neuron$padj < 0.05 & abs(Neuron$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+#create data frame
+data <- data.frame(rbind(Adipocyte, Cardiomyocyte, Endothelial, Fibroblast, Lymphoid, Mesothelial, Myeloid, Mural, Neuron))
+data$cell <- factor(data$cell, levels = c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid", "Mesothelial", "Myeloid", "Mural", "Neuron"))
+
+data$cluster <- ifelse(data$log2FoldChange > 0, "AFleft", "Ctrlleft")
+data_AFleft_Ctrlleft <- filter(data, data$sig == "Significant")
+######
+
+
+
+##### AFright vs Ctrlright
+Adipocyte <- read_delim("./DE_analysis/AFright_Ctrlright/Adipocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Adipocyte$cell <- "Adipocyte"
+Adipocyte$sigpvalue <- ifelse(Adipocyte$padj < 0.05, "p < 0.05","p > 0.05")
+Adipocyte$sig <- ifelse(Adipocyte$padj < 0.05 & abs(Adipocyte$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Cardiomyocyte <- read_delim("./DE_analysis/AFright_Ctrlright/Cardiomyocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Cardiomyocyte$cell <- "Cardiomyocyte"
+Cardiomyocyte$sigpvalue <- ifelse(Cardiomyocyte$padj < 0.05, "p < 0.05","p > 0.05")
+Cardiomyocyte$sig <- ifelse(Cardiomyocyte$padj < 0.05 & abs(Cardiomyocyte$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Endothelial <- read_delim("./DE_analysis/AFright_Ctrlright/Endothelial_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Endothelial$cell <- "Endothelial"
+Endothelial$sigpvalue <- ifelse(Endothelial$padj < 0.05, "p < 0.05","p > 0.05")
+Endothelial$sig <- ifelse(Endothelial$padj < 0.05 & abs(Endothelial$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Fibroblast <- read_delim("./DE_analysis/AFright_Ctrlright/Fibroblast_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Fibroblast$cell <- "Fibroblast"
+Fibroblast$sigpvalue <- ifelse(Fibroblast$padj < 0.05, "p < 0.05","p > 0.05")
+Fibroblast$sig <- ifelse(Fibroblast$padj < 0.05 & abs(Fibroblast$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Lymphoid <- read_delim("./DE_analysis/AFright_Ctrlright/Lymphoid_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Lymphoid$cell <- "Lymphoid"
+Lymphoid$sigpvalue <- ifelse(Lymphoid$padj < 0.05, "p < 0.05","p > 0.05")
+Lymphoid$sig <- ifelse(Lymphoid$padj < 0.05 & abs(Lymphoid$log2FoldChange) > 0.58, "Significant","Not Significant")
+ 
+Mesothelial <- read_delim("./DE_analysis/AFright_Ctrlright/Mesothelial_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Mesothelial$cell <- "Mesothelial"
+Mesothelial$sigpvalue <- ifelse(Mesothelial$padj < 0.05, "p < 0.05","p > 0.05")
+Mesothelial$sig <- ifelse(Mesothelial$padj < 0.05 & abs(Mesothelial$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Myeloid <- read_delim("./DE_analysis/AFright_Ctrlright/Myeloid_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Myeloid$cell <- "Myeloid"
+Myeloid$sigpvalue <- ifelse(Myeloid$padj < 0.05, "p < 0.05","p > 0.05")
+Myeloid$sig <- ifelse(Myeloid$padj < 0.05 & abs(Myeloid$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Mural <- read_delim("./DE_analysis/AFright_Ctrlright/Mural_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Mural$cell <- "Mural"
+Mural$sigpvalue <- ifelse(Mural$padj < 0.05, "p < 0.05","p > 0.05")
+Mural$sig <- ifelse(Mural$padj < 0.05 & abs(Mural$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+Neuron <- read_delim("./DE_analysis/AFright_Ctrlright/Neuron_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+Neuron$cell <- "Neuron"
+Neuron$sigpvalue <- ifelse(Neuron$padj < 0.05, "p < 0.05","p > 0.05")
+Neuron$sig <- ifelse(Neuron$padj < 0.05 & abs(Neuron$log2FoldChange) > 0.58, "Significant","Not Significant")
+
+#create data frame
+data <- data.frame(rbind(Adipocyte, Cardiomyocyte, Endothelial, Fibroblast, Lymphoid, Mesothelial, Myeloid, Mural, Neuron))
+data$cell <- factor(data$cell, levels = c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid", "Mesothelial", "Myeloid", "Mural", "Neuron"))
+
+data$cluster <- ifelse(data$log2FoldChange > 0, "AFright", "Ctrlright")
+data_AFright_Ctrlright <- filter(data, data$sig == "Significant")
+######
+
+dir.create("DE_analysis/AF_unique_genes/")
+
+###### Functionalize 
+# AFleft
+# Genes Up
+# Initialize lists
+cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
+direction <- c("Up","Up", "Up", "Up", "Up", "Up", "Up", "Up", "Up" )
+n_genes <- c()
+
+data_AFleft_Ctrlleft_AFleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "AFleft")
+data_AFright_Ctrlright_AFright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "AFright")
+data_AFleft_AFright_AFleft <- filter(data_AFleft_AFright, data_AFleft_AFright$cluster == "AFleft")
+
+j <- 1
+for (i in cell_types) {
+    data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == i)$gene
+    data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == i)$gene
+    data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == i)$gene
+    
+    desired_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset,
+                              data_AFright_Ctrlright_AFright_subset)
+
+    #desired_genes <- setdiff(Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset)),
+                             #Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset, data_AFright_Ctrlright_AFright_subset)))
+    n_desired_genes <- length(desired_genes) 
+    n_genes[j] <- n_desired_genes
+    j <- j + 1
+}
+df_up <- data.frame(cell_types,direction,n_genes)
+
+# Genes Down
+# Initialize lists
+cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
+direction <- c("Down","Down", "Down", "Down", "Down", "Down", "Down", "Down",   "Down")
+n_genes <- c()
+
+data_AFleft_Ctrlleft_Ctrlleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "Ctrlleft")
+data_AFright_Ctrlright_Ctrlright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "Ctrlright")
+data_AFleft_AFright_AFright <- filter(data_AFleft_AFright, data_AFleft_AFright$cluster == "AFright")
+
+j <- 1
+for (i in cell_types) {
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == i)$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == i)$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == i)$gene
+    
+    desired_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset , data_AFright_Ctrlright_Ctrlright_subset)
+    #desired_genes <- setdiff(Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset)),
+                             #Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset, data_AFright_Ctrlright_Ctrlright_subset)))
+    n_desired_genes <- length(desired_genes) 
+    n_genes[j] <- n_desired_genes
+    j <- j + 1
+}
+df_down <- data.frame(cell_types,direction,n_genes)
+
+df <- rbind(df_up, df_down)
+df$n_genes <- as.numeric(df$n_genes)
+df$sumGenes <- df_up$n_genes + df_down$n_genes
+df_Count <- df[order(-df$sumGenes),]
+
+df_Count <- data.frame(df_Count)
+df_Count$cell_types <- factor(df_Count$cell_types, levels=c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid","Mediate",  "Mesothelial", "Myeloid", "Mural", "Neuron"))
+
+p1 <- ggplot(df_Count, aes(x = reorder(cell_types,-n_genes), y = n_genes, fill = direction)) + geom_col() + labs(x="Cell Type", y="#Genes", fill="Significance") + scale_fill_manual(values = c("dodgerblue4", "red3")) + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+ggtitle('Signature_AF_left')
+ggsave(p1,  filename = paste("./DE_analysis/AF_unique_genes/ngenes_AF_left.pdf",sep=""), height = 4, width = 5)
+
+write.csv(df_Count, "./DE_analysis/AF_unique_genes/n_uniquegenes_AFleft.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+n_uniquegenes_AFleft <- df_Count
+
+
+# AFright
+# Genes Up
+# Initialize lists
+cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
+direction <- c("Up","Up", "Up", "Up", "Up", "Up", "Up", "Up",   "Up")
+n_genes <- c()
+
+data_AFleft_Ctrlleft_AFleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "AFleft")
+data_AFright_Ctrlright_AFright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "AFright")
+data_AFleft_AFright_AFright <- filter(data_AFleft_AFright, data_AFleft_AFright$cluster == "AFright")
+
+j <- 1
+for (i in cell_types) {
+    data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == i)$gene
+    data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == i)$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == i)$gene
+    
+    desired_genes <- setdiff(data_AFright_Ctrlright_AFright_subset, data_AFleft_Ctrlleft_AFleft_subset)
+
+    #desired_genes <- setdiff(Reduce(intersect,list(data_AFright_Ctrlright_AFright_subset, data_AFleft_AFright_AFright_subset)),
+                             #Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFright_subset, data_AFright_Ctrlright_AFright_subset)))
+    n_desired_genes <- length(desired_genes) 
+    n_genes[j] <- n_desired_genes
+    j <- j + 1
+}
+df_up <- data.frame(cell_types,direction,n_genes)
+
+# Genes Down
+# Initialize lists
+cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid",  "Mesothelial", "Myeloid", "Mural", "Neuron")
+direction <- c("Down","Down", "Down", "Down", "Down", "Down", "Down", "Down",   "Down")
+n_genes <- c()
+
+data_AFleft_Ctrlleft_Ctrlleft <- filter(data_AFleft_Ctrlleft, data_AFleft_Ctrlleft$cluster == "Ctrlleft")
+data_AFright_Ctrlright_Ctrlright <- filter(data_AFright_Ctrlright, data_AFright_Ctrlright$cluster == "Ctrlright")
+data_AFleft_AFright_AFleft <- filter(data_AFleft_AFright, data_AFleft_AFright$cluster == "AFleft")
+
+j <- 1
+for (i in cell_types) {
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == i)$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == i)$gene
+    data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == i)$gene
+    
+    desired_genes <- setdiff(data_AFright_Ctrlright_Ctrlright_subset, data_AFleft_Ctrlleft_Ctrlleft_subset)
+
+   # desired_genes <- setdiff(Reduce(intersect,list(data_AFright_Ctrlright_Ctrlright_subset, data_AFleft_AFright_AFleft_subset)),
+                             #Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFleft_subset, data_AFright_Ctrlright_Ctrlright_subset)))
+    n_desired_genes <- length(desired_genes) 
+    n_genes[j] <- n_desired_genes
+    j <- j + 1
+}
+df_down <- data.frame(cell_types,direction,n_genes)
+
+df <- rbind(df_up, df_down)
+df$n_genes <- as.numeric(df$n_genes)
+df$sumGenes <- df_up$n_genes + df_down$n_genes
+df_Count <- df[order(-df$sumGenes),]
+
+df_Count <- data.frame(df_Count)
+df_Count$cell_types <- factor(df_Count$cell_types, levels=c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid","Mediate",  "Mesothelial", "Myeloid", "Mural", "Neuron"))
+
+p1 <- ggplot(df_Count, aes(x = reorder(cell_types,-n_genes), y = n_genes, fill = direction)) + geom_col() + labs(x="Cell Type", y="#Genes", fill="Significance") + scale_fill_manual(values = c("dodgerblue4", "red3")) + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))+
+ggtitle('Signature_AF_right')
+ggsave(p1,  filename = paste("./DE_analysis/AF_unique_genes/ngenes_AF_right.pdf",sep=""), height = 4, width = 5)
+
+write.csv(df_Count, "./DE_analysis/AF_unique_genes/n_uniquegenes_AFright.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+n_uniquegenes_AFright <- df_Count
+
+#Scatter plot
+colnames(n_uniquegenes_AFleft) <- c('cell_types_AFleft', 'direction_AFleft', 'n_genes_AFleft', 'sumGenes_AFleft')
+colnames(n_uniquegenes_AFright) <- c('cell_types_AFright', 'direction_AFright', 'n_genes_AFright', 'sumGenes_AFright')
+n_uniquegenes_AFleft <- n_uniquegenes_AFleft[order(n_uniquegenes_AFleft$cell_types),]
+n_uniquegenes_AFright <- n_uniquegenes_AFright[order(n_uniquegenes_AFright$cell_types),]
+remodeling <- cbind(n_uniquegenes_AFleft, n_uniquegenes_AFright)
+remodeling <- select(remodeling, -5)
+remodeling$lr <- remodeling$sumGenes_AFleft +remodeling$sumGenes_AFright
+write.csv(remodeling, "./DE_analysis/AF_unique_genes/n_uniquegenes_remodeling.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+
+p1_lr <- ggplot(remodeling, aes(sumGenes_AFleft, sumGenes_AFright, color=cell_types_AFleft)) +
+  geom_point(aes(size=lr)) +
+  geom_label_repel(data = subset(remodeling, lr >60), aes(label = cell_types_AFleft), color = 'black', segment.color = 'black', segment.size = 0.5, size = 4, force = T, nudge_x = 100, nudge_y = 100 )+
+  scale_color_manual(values=mycolor) +
+  xlab("Gene Counts of Signature_AF_left") +
+  ylab("Gene Counts Signature_AF_right") + xlim(0,800) + ylim(0,800)+
+  ggtitle("Signature_AF_left vs Signature_AF_right")+
+  theme(plot.title = element_text(hjust = 0.5),
+             legend.position = 'none',
+             panel.background = element_rect(fill = 'white'), #???
+             plot.background=element_rect(fill="white"),
+             axis.line.x=element_line(linetype=1,color="black",size=1),
+             axis.line.y=element_line(linetype=1,color="black",size=1)
+              ) 
+p1_lr
+ggsave(p1_lr,  filename = paste("./DE_analysis/AF_unique_genes/scatter_ngenes_AF.pdf",sep=""), height = 4, width = 5)
+
+
+
+#UPSET PLOT
+# AFleft
+# UPSET PLOT: Down
+listInput = list()
+j <- 1
+for (i in cell_types) {
+
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == i)$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == i)$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == i)$gene
+    desired_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset ,  data_AFright_Ctrlright_Ctrlright_subset)
+    #desired_genes <- setdiff(Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset)),
+                             #Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset, data_AFright_Ctrlright_Ctrlright_subset)))
+
+    listInput[[i]] = desired_genes
+}
+#devtools::install_github("GuangchuangYu/UpSetR")
+library(UpSetR)
+p1 <- upset(fromList(listInput), order.by = "freq",nsets = 5)
+require(ggplotify)
+p2 <-  as.ggplot(p1)
+p3 <- p2+ggtitle('cross downregulated Signature_AF_left')
+ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFleft_down.pdf",sep=""), height = 4, width = 5)
+
+```
+# UPSET PLOT: Up
+listInput = list()
+j <- 1
+for (i in cell_types) {
+    data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == i)$gene
+    data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == i)$gene
+    data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == i)$gene
+        desired_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset,  data_AFright_Ctrlright_AFright_subset)
+    #desired_genes <- setdiff(Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset)),
+                             #Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset, data_AFright_Ctrlright_AFright_subset)))
+    
+    listInput[[i]] = desired_genes
+}
+library(UpSetR)
+p1 <- upset(fromList(listInput), order.by = "freq",nsets = 5)
+require(ggplotify)
+p2 <-  as.ggplot(p1)
+p3 <- p2+ggtitle('cross upregulated Signature_AF_left')
+ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFleft_up.pdf",sep=""), height = 4, width = 5)
+```
+
+# AFright
+# UPSET PLOT: Down
+listInput = list()
+j <- 1
+for (i in cell_types) {
+
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == i)$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == i)$gene
+    data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == i)$gene
+    
+    desired_genes <- setdiff(data_AFright_Ctrlright_Ctrlright_subset, data_AFleft_Ctrlleft_Ctrlleft_subset)    
+    #desired_genes <- setdiff(Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFleft_subset)),
+                             #Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFleft_subset, data_AFright_Ctrlright_Ctrlright_subset)))
+
+    listInput[[i]] = desired_genes
+}
+library(UpSetR)
+p1 <- upset(fromList(listInput), order.by = "freq",nsets = 5)
+require(ggplotify)
+p2 <-  as.ggplot(p1)
+p3 <- p2+ggtitle('cross downregulated Signature_AF_right')
+ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFright_down.pdf",sep=""), height = 4, width = 5)
+```
+# UPSET PLOT: Up
+listInput = list()
+j <- 1
+for (i in cell_types) {
+    data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == i)$gene
+    data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == i)$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == i)$gene
+    
+    desired_genes <- setdiff(data_AFright_Ctrlright_AFright_subset,  data_AFleft_Ctrlleft_AFleft_subset)
+    #desired_genes <- setdiff(Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFright_subset)),
+                             #Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFright_subset, data_AFright_Ctrlright_AFright_subset)))
+    
+    listInput[[i]] = desired_genes
+}
+library(UpSetR)
+upset(fromList(listInput), order.by = "freq",nsets = 5)
+p1 <- upset(fromList(listInput), order.by = "freq",nsets = 5)
+require(ggplotify)
+p2 <-  as.ggplot(p1)
+p3 <- p2+ggtitle('cross upregulated Signature_AF_right')
+ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFright_up.pdf",sep=""), height = 4, width = 5)
+```
+
+
+
+
+
+
+
+
+
+
+
+
