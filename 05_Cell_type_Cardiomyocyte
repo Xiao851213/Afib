@@ -51,15 +51,674 @@ mycolor6<-pal_jco("default", alpha = 1)(10)
 mycolor <-c(mycolor3,mycolor2,mycolor1,mycolor4,mycolor5,mycolor6)
 
 
+#cell density
+library(viridis)
+library(ggpointdensity)
+obj <- haf_Cardiomyocyte
+obj_list <- SplitObject(obj, split.by = "group")
+obj_AF_left <- obj_list$AF_left
+obj_Ctrl_left <- obj_list$Ctrl_left
+obj_AF_right <- obj_list$AF_right
+obj_Ctrl_right <- obj_list$Ctrl_right
+seurat_obj <- obj_AF_left
+data <- cbind(Embeddings(object=seurat_obj[['umap']]),FetchData(seurat_obj,'seurat_clusters'))
+p1 <- ggplot(data = data, mapping = aes(x = umap_1, y = umap_2)) +
+ geom_pointdensity() +
+ scale_color_viridis()+theme_bw() + ggtitle('AF_left')
+seurat_obj <- obj_Ctrl_left
+data <- cbind(Embeddings(object=seurat_obj[['umap']]),FetchData(seurat_obj,'seurat_clusters'))
+p2 <- ggplot(data = data, mapping = aes(x = umap_1, y = umap_2)) +
+ geom_pointdensity() +
+ scale_color_viridis()+theme_bw() + ggtitle('Ctrl_left')
+seurat_obj <- obj_AF_right
+data <- cbind(Embeddings(object=seurat_obj[['umap']]),FetchData(seurat_obj,'seurat_clusters'))
+p3 <- ggplot(data = data, mapping = aes(x = umap_1, y = umap_2)) +
+ geom_pointdensity() +
+ scale_color_viridis()+theme_bw() + ggtitle('AF_right')
+seurat_obj <- obj_Ctrl_right
+data <- cbind(Embeddings(object=seurat_obj[['umap']]),FetchData(seurat_obj,'seurat_clusters'))
+p4 <- ggplot(data = data, mapping = aes(x = umap_1, y = umap_2)) +
+ geom_pointdensity() +
+ scale_color_viridis()+theme_bw() + ggtitle('Ctrl_right')
+p <- (p1 + p3 ) / (p2 + p4 )
+ggsave(p,file="haf_Cardiomyocyte_umap_dencity.pdf",width = 10, height = 8)
+
+
+haf_Cardiomyocyte <- FindClusters(haf_Cardiomyocyte, resolution = 0.3)
+metadata <- haf_Cardiomyocyte@meta.data
+metadata$cell_state <- 'NA'
+metadata$cell_state[which(metadata$seurat_clusters == 0)] = "CM01"
+metadata$cell_state[which(metadata$seurat_clusters == 1)] = "CM02"
+metadata$cell_state[which(metadata$seurat_clusters == 2)] = "CM03"
+metadata$cell_state[which(metadata$seurat_clusters == 3)] = "CM04"
+metadata$cell_state[which(metadata$seurat_clusters == 4)] = "CM05"
+metadata$cell_state[which(metadata$seurat_clusters == 5)] = "CM06"
+metadata$cell_state[which(metadata$seurat_clusters == 6)] = "CM07"
+metadata$cell_state[which(metadata$seurat_clusters == 7)] = "CM08"
+haf_Cardiomyocyte@meta.data <- metadata
+Idents(haf_Cardiomyocyte) <- haf_Cardiomyocyte@meta.data$cell_state
+my_levels <- c('CM01', 'CM02', 'CM03', 'CM04', "CM05", "CM06", "CM07", "CM08")
+Idents(haf_Cardiomyocyte) <- factor(Idents(haf_Cardiomyocyte), levels = my_levels)
+DimPlot(haf_Cardiomyocyte, reduction = "umap", cols = mycolor, label = TRUE, raster=FALSE)
+saveRDS(haf_Cardiomyocyte, file = "haf_Cardiomyocyte.RDS")
+
+#umap plot
+p1 <- DimPlot(haf_Cardiomyocyte, reduction = "umap", cols = mycolor, label = TRUE, raster=FALSE)
+ggsave(p1,file="haf_Cardiomyocyte_umap_cell_state.pdf",width = 5, height = 4)
+
+data = haf_Cardiomyocyte@reductions$umap@cell.embeddings %>% as.data.frame() %>% cbind(cell_type = haf_Cardiomyocyte@meta.data$cell_state)
+colnames(data) <- c('umap_1', 'umap_2', 'cell_state')
+p <- ggplot(data,aes(x= umap_1 , y = umap_2 ,color = cell_state)) +  geom_point(size = 0.1 , alpha =1 )  +  scale_color_manual(values = mycolor)
+p2 <- p  +
+  theme(panel.grid.major = element_blank(), #????
+        panel.grid.minor = element_blank(), #????
+        panel.border = element_blank(), #??
+        axis.title = element_blank(),  #???
+        axis.text = element_blank(), # ??
+        axis.ticks = element_blank(),
+        panel.background = element_rect(fill = 'white'), #???
+        plot.background=element_rect(fill="white"))
+p3 <- p2 +         
+        theme(
+          legend.position = "none")
+umap <- data
+p4 <- p3 + 
+  geom_segment(aes(x = min(umap$umap_1) , y = min(umap$umap_2) ,
+                   xend = min(umap$umap_1) +3, yend = min(umap$umap_2) ),
+               colour = "black", size=0.5,arrow = arrow(length = unit(0.3,"cm"),  type = "closed")) + 
+  geom_segment(aes(x = min(umap$umap_1)  , y = min(umap$umap_2)  ,
+                   xend = min(umap$umap_1) , yend = min(umap$umap_2) + 3),
+               colour = "black", size=0.5,arrow = arrow(length = unit(0.3,"cm"),  type = "closed")) +
+  annotate("text", x = min(umap$umap_1) +1.5, y = min(umap$umap_2) -1, label = "UMAP_1",
+           color="black",size = 5, family = "arial") + 
+  annotate("text", x = min(umap$umap_1) -1, y = min(umap$umap_2) + 1.5, label = "UMAP_2",
+           color="black",size = 5, family = "arial",angle=90) 
+cell_type_med <- umap %>%
+  group_by(cell_state) %>%
+  summarise(
+    umap_1 = median(umap_1),
+    umap_2 = median(umap_2)
+  )
+library(ggrepel)
+p5 <- p3 +geom_label_repel(aes(label=cell_state), label.size = NA,family = "arial",size = 6, data = cell_type_med,
+                   box.padding= unit(0, "lines"),point.padding=unit(0.5, "lines"), color = "black", fill = alpha("white",0.5) )         
+ggsave(plot=p5, filename="haf_Cardiomyocyte_umap.pdf",width = 7.5,height = 6)
+
+
+#dot plot for marker genes
+haf_Cardiomyocyte_marker <- FindAllMarkers(haf_Cardiomyocyte, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+haf_Cardiomyocyte_marker <- subset(haf_Cardiomyocyte_marker, avg_log2FC <= -1 | avg_log2FC >= 1)
+haf_Cardiomyocyte_marker <- subset(haf_Cardiomyocyte_marker, p_val <= 0.05)
+write.csv(haf_Cardiomyocyte_marker,file = 'haf_Cardiomyocyte_marker_cell_type.csv')
+haf_Cardiomyocyte_marker1 <- subset(haf_Cardiomyocyte_marker, pct.1 > 0.5)
+haf_Cardiomyocyte_marker2 <- subset(haf_Cardiomyocyte_marker1, pct.2 < 0.5)
+haf_Cardiomyocyte_marker1 %>%
+    group_by(cluster) %>%
+    top_n(n = 3, wt = avg_log2FC) ->haf_Cardiomyocyte_marker_top3
+gene.state <- haf_Cardiomyocyte_marker_top3$gene
+gene.state <- unique(gene.state)
+cm.marker <- c('TTN', 'RYR2','TNNT2')
+cm.state<- c(cm.marker, gene.state)
+p1 <- DotPlot(haf_Cardiomyocyte, features = cm.state) + RotatedAxis() +ggplot2:::coord_flip() +ggtitle('Cell state marker genes')
+p1
+ggsave(p1,file="haf_Cardiomyocyte_dot_cell_state.pdf", width = 5.5, height = 8)
+
+Idents(haf_Cardiomyocyte) <- haf_Cardiomyocyte@meta.data$group
+my_levels <- c('AF_left', 'Ctrl_left', 'AF_right', 'Ctrl_right')
+Idents(haf_Cardiomyocyte) <- factor(Idents(haf_Cardiomyocyte), levels = my_levels)
+p1 <- DotPlot(haf_Cardiomyocyte, features = gene.state) + RotatedAxis() +ggplot2:::coord_flip()+ggtitle('Cell state marker genes')
+p1
+ggsave(p1,file="haf_Cardiomyocyte_dot_cell_state_group.pdf", width = 5, height = 8)
+haf_Cardiomyocyte_marker <- FindAllMarkers(haf_Cardiomyocyte, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+haf_Cardiomyocyte_marker <- subset(haf_Cardiomyocyte_marker, avg_log2FC <= -1 | avg_log2FC >= 1)
+haf_Cardiomyocyte_marker <- subset(haf_Cardiomyocyte_marker, p_val <= 0.05)
+write.csv(haf_Cardiomyocyte_marker,file = 'haf_Cardiomyocyte_marker_group.csv')
+haf_Cardiomyocyte_marker %>%
+    group_by(cluster) %>%
+    top_n(n = 5, wt = avg_log2FC) ->haf_Cardiomyocyte_marker_top5
+gene.group <- haf_Cardiomyocyte_marker_top5$gene
+gene.group <- unique(gene.group)
+p1 <- DotPlot(haf_Cardiomyocyte, features = gene.group) + RotatedAxis() +ggtitle('Group marker genes')  +ggplot2:::coord_flip()
+p1
+ggsave(p1,file="haf_Cardiomyocyte_dot_group.pdf", width = 4.5, height = 8)
+
+Idents(haf_Cardiomyocyte) <- haf_Cardiomyocyte@meta.data$cell_state
+my_levels <- c( 'CM01', 'CM02', 'CM03', 'CM04', "CM05", "CM06", "CM07", "CM08", "CM09", "CM10", "CM11", "CM12", 'CM13', 'CM14', 'CM15', 'CM16')
+Idents(haf_Cardiomyocyte) <- factor(Idents(haf_Cardiomyocyte), levels = my_levels)
+p1 <- DotPlot(haf_Cardiomyocyte, features = gene.group, group.by = "cell_state") + RotatedAxis() +ggplot2:::coord_flip()+ggtitle('Group marker genes')
+p1
+ggsave(p1,file="haf_Cardiomyocyte_dot_group_cell_state.pdf", width = 5.5, height = 6)
+
+#correlation
+av_haf_Cardiomyocyte <- AverageExpression(haf_Cardiomyocyte, group.by = "cell_state", assays = "RNA")
+av_haf_Cardiomyocyte <- av_haf_Cardiomyocyte[[1]]
+cg_haf_Cardiomyocyte = names(tail(sort(apply(av_haf_Cardiomyocyte,1,sd)),2000))
+av_haf_Cardiomyocyte <- as.data.frame(av_haf_Cardiomyocyte)
+corplot_haf_Cardiomyocyte <- pheatmap::pheatmap(cor(av_haf_Cardiomyocyte[cg_haf_Cardiomyocyte,],method = 'spearman'))
+ggsave(corplot_haf_Cardiomyocyte,file="corplot_haf_Cardiomyocyte.pdf",width = 5, height = 4)
+
+
+#Proportion
+plotC <- table(haf_Cardiomyocyte@meta.data$group, haf_Cardiomyocyte@meta.data$cell_state)  %>% melt()
+colnames(plotC) <- c("Group", "Cell_Type","Number")
+plotC$Group <- factor(plotC$Group, levels=c('AF_left', 'Ctrl_left', 'AF_right', 'Ctrl_right'),ordered = TRUE)
+write.csv(plotC,file = 'haf_Cardiomyocyte_propotion_cell_type_group.csv')
+#colomplot
+pC1 <- ggplot(data = plotC, aes(x = Group, y = Number, fill = as.factor(Cell_Type))) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="stack")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Average number")+
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))
+#ratioplot
+pC2 <- ggplot(data = plotC, aes(x = Group, y = Number, fill = as.factor(Cell_Type))) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="fill")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Cell proportion")+
+scale_y_continuous(labels = percent)+ ####move y axi
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))#?????????45?
+#bind two plot
+p4 <- pC1 + pC2 + plot_layout(ncol = 2, widths = c(1,1),guides = 'collect')
+p4
+#save plot
+ggsave(p4,file="haf_Cardiomyocyte_Propotion_Group.pdf",width = 6, height = 4)
+
+plotC <- table(haf_Cardiomyocyte@meta.data$sample, haf_Cardiomyocyte@meta.data$cell_state) %>% melt()
+colnames(plotC) <- c("Sample", "Cell_Type","Number")
+plotC$Sample <- factor(plotC$Sample, 
+levels=c('P01_L_AF',   'P02_L_AF',   'P03_L_AF',   'P04_L_AF', 'P05_L_AF', 'P06_L_AF',   'P07_L_AF',   'P08_L_AF' ,
+'P09_L_CTRL', 'P10_L_CTRL',   'P11_L_CTRL', 'P12_L_CTRL',
+'P04_R_AF',   'P05_R_AF',   'P13_R_AF',   'P14_R_AF',
+'P10_R_CTRL',  'P12_R_CTRL',   'P15_R_CTRL', 'P16_R_CTRL', 'P17_R_CTRL', 'P18_R_CTRL' ),ordered = TRUE)
+write.csv(plotC,file = 'haf_propotion_Cardiomyocyte_Sample.csv')
+#colomplot
+pC1 <- ggplot(data = plotC, aes(x = Sample, y = Number, fill = as.factor(Cell_Type))) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="stack")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Average number")+
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))
+#ratioplot
+pC2 <- ggplot(data = plotC, aes(x = Sample, y = Number, fill = as.factor(Cell_Type))) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="fill")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Cell proportion")+
+scale_y_continuous(labels = percent)+ ####move y axi
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))#?????????45?
+#bind two plot
+p5 <- pC1 + pC2 + plot_layout(ncol = 2, widths = c(1,1),guides = 'collect')
+#save plot
+ggsave(p5,file="haf_Cardiomyocyte_Propotion_Sample.pdf",width = 15, height = 4)
+
+
+#gsva bar plot
+library(GSVA)
+library('GSEABase')
+library(ggplot2)
+library(ggthemes)
+library(ggprism)
+genesets = msigdbr(species = 'Homo sapiens', category = 'H')
+genesets <- subset(genesets,  select = c('gs_name', 'gene_symbol')) %>% as.data.frame()
+genesets <- split(genesets$gene_symbol, genesets$gs_name)
+Idents(haf_Cardiomyocyte) <- 'sample'
+expr <- AverageExpression(haf_Cardiomyocyte, assays = 'RNA', slot = 'data')[[1]]
+expr <- expr[rowSums(expr)>0,]
+expr <- as.matrix(expr)
+#GSVA_hall <- gsva(expr=expr,gset.idx.list = genesets, mx.diff = T, kcdf = 'Gaussian', parallel.sz = 4)
+GSVA_obj <- gsvaParam(expr, genesets, maxDiff=TRUE)
+GSVA_hall <- gsva(GSVA_obj)
+library(limma)
+group <- factor(c(rep('AF_left',8),rep('Ctrl_left',3),rep('AF_right',4),rep('Ctrl_right',4)),levels = c('AF_left','Ctrl_left', 'AF_right','Ctrl_right'))
+design <- model.matrix(~0+group)
+colnames(design)= levels(factor(group))
+rownames(design)= colnames(GSVA_hall)
+compare <- makeContrasts(AF_left - Ctrl_left, levels = design)
+fit <- lmFit(GSVA_hall,design)
+fit2 <- contrasts.fit(fit,compare)
+fit3 <- eBayes(fit2)
+diff <- topTable(fit3, coef = 1, number = 200)
+dat_plot <- data.frame(id = row.names(diff),t = diff$t)
+library(stringr)
+dat_plot$id <- str_replace(dat_plot$id,'HALLMARK_','')
+dat_plot$threshold = factor(ifelse(dat_plot$t >-2,ifelse(dat_plot$t >=2,'Up','NoSig'),'Down'),levels=c('Up','Down','NoSig'))
+dat_plot <- dat_plot %>% arrange(t)
+dat_plot$id <- factor(dat_plot$id, levels = dat_plot$id)
+dat_plot_left <- dat_plot
+dat_plot_left$group <- 'Left'
+compare <- makeContrasts(AF_right - Ctrl_right, levels = design)
+fit <- lmFit(GSVA_hall,design)
+fit2 <- contrasts.fit(fit,compare)
+fit3 <- eBayes(fit2)
+#plotSA(tmp, main="Final model: Mean-variance trend")
+diff <- topTable(fit3, coef = 1, number = 200)
+dat_plot <- data.frame(id = row.names(diff),t = diff$t)
+library(stringr)
+dat_plot$id <- str_replace(dat_plot$id,'HALLMARK_','')
+dat_plot$threshold = factor(ifelse(dat_plot$t >-2,ifelse(dat_plot$t >=2,'Up','NoSig'),'Down'),levels=c('Up','Down','NoSig'))
+dat_plot <- dat_plot %>% arrange(t)
+dat_plot$id <- factor(dat_plot$id, levels = dat_plot$id)
+dat_plot_right <- dat_plot
+dat_plot_right$group <- 'Right'
+dat_plot <- rbind(dat_plot_left, dat_plot_right)
+dat_plot <- unite(dat_plot,"group_threshold",c("group","threshold"), sep="-", remove = F)
+#dat_plot$'group_threshold'[which(str_detect(dat_plot$threshold, "NoSig"))] <- "NoSig"
+p <- ggplot(dat_plot,aes(x=reorder(id,t),
+                         y=t,
+                  fill=group_threshold))+ 
+     geom_bar(stat='identity',
+           position = 'dodge')+
+     labs(x='id', y='t')+
+     RotatedAxis() +
+     ggplot2:::coord_flip()+
+     scale_fill_manual(values = c('Left-Up' = '#dd5129', 'Right-Up' = '#fab255', 'Left-NoSig' = 'grey60', 'Right-NoSig' = '#cccccc', 'Left-Down' = '#0f7ba2', 'Right-Down' = '#43b284'))+
+     geom_hline(yintercept = c(-2,2), color = 'white', size = 0.5, lty='solid')+
+     xlab('')+
+     ylab('t value of GSVA score, AF versus Ctrl')+ 
+     theme_prism(border=T) +
+     theme(
+           axis.text.x = element_text(family = "Arial" , size = rel(0.8) ))+
+     theme(
+           axis.text.y = element_text(family = "Arial" , size = rel(0.8) ))
+ggsave("haf_Cardiomyocyte_gsva_AFvsCtrl.pdf",p, width = 7.5,height = 10)
+
+compare <- makeContrasts(AF_left - AF_right, levels = design)
+fit <- lmFit(GSVA_hall,design)
+fit2 <- contrasts.fit(fit,compare)
+fit3 <- eBayes(fit2)
+diff <- topTable(fit3, coef = 1, number = 200)
+dat_plot <- data.frame(id = row.names(diff),t = diff$t)
+library(stringr)
+dat_plot$id <- str_replace(dat_plot$id,'HALLMARK_','')
+dat_plot$threshold = factor(ifelse(dat_plot$t >-2,ifelse(dat_plot$t >=2,'Up','NoSig'),'Down'),levels=c('Up','Down','NoSig'))
+dat_plot <- dat_plot %>% arrange(t)
+dat_plot$id <- factor(dat_plot$id, levels = dat_plot$id)
+dat_plot_AF <- dat_plot
+dat_plot_AF$group <- 'AF'
+compare <- makeContrasts(Ctrl_left - Ctrl_right, levels = design)
+fit <- lmFit(GSVA_hall,design)
+fit2 <- contrasts.fit(fit,compare)
+fit3 <- eBayes(fit2)
+diff <- topTable(fit3, coef = 1, number = 200)
+dat_plot <- data.frame(id = row.names(diff),t = diff$t)
+library(stringr)
+dat_plot$id <- str_replace(dat_plot$id,'HALLMARK_','')
+dat_plot$threshold = factor(ifelse(dat_plot$t >-2,ifelse(dat_plot$t >=2,'Up','NoSig'),'Down'),levels=c('Up','Down','NoSig'))
+dat_plot <- dat_plot %>% arrange(t)
+dat_plot$id <- factor(dat_plot$id, levels = dat_plot$id)
+dat_plot_Ctrl <- dat_plot
+dat_plot_Ctrl$group <- 'Ctrl'
+dat_plot <- rbind(dat_plot_AF, dat_plot_Ctrl)
+dat_plot <- unite(dat_plot,"group_threshold",c("group","threshold"), sep="-", remove = F)
+#dat_plot$'group_threshold'[which(str_detect(dat_plot$threshold, "NoSig"))] <- "NoSig"
+p <- ggplot(dat_plot,aes(x=reorder(id,t),
+                         y=t,
+                  fill=group_threshold))+ 
+     geom_bar(stat='identity',
+           position = 'dodge')+
+     labs(x='id', y='t')+
+     RotatedAxis() +
+     ggplot2:::coord_flip()+
+     scale_fill_manual(values = c('AF-Up' = '#dd5129', 'Ctrl-Up' = '#fab255', 'AF-NoSig' = 'grey60', 'Ctrl-NoSig' = '#cccccc', 'AF-Down' = '#0f7ba2', 'Ctrl-Down' = '#43b284'))+
+     geom_hline(yintercept = c(-2,2), color = 'white', size = 0.5, lty='solid')+
+     xlab('')+
+     ylab('t value of GSVA score, Left versus Right')+ 
+     theme_prism(border=T) +
+     theme(
+           axis.text.x = element_text(family = "Arial" , size = rel(0.8) ))+
+     theme(
+           axis.text.y = element_text(family = "Arial" , size = rel(0.8) ))
+ggsave("haf_Cardiomyocyte_gsva_LeftvsRight.pdf",p, width = 7.5,height = 10)
+
+#distribution of gsva genesets
+genesets = msigdbr(species = 'Homo sapiens', category = 'H')
+genesets <- subset(genesets,  select = c('gs_name', 'gene_symbol')) %>% as.data.frame()
+genesets <- split(genesets$gene_symbol, genesets$gs_name)
+
+geneset_e2f_target <- genesets$HALLMARK_E2F_TARGETS
+geneset_myc_target_v1 <- genesets$HALLMARK_MYC_TARGETS_V1
+geneset_myc_target_v2 <- genesets$HALLMARK_MYC_TARGETS_V2 
+geneset_il6_jak_stat3 <- genesets$HALLMARK_IL6_JAK_STAT3_SIGNALING
+geneset_dna_repair <- genesets$HALLMARK_DNA_REPAIR
+ 
+library(ArchR)
+sample <- haf_Cardiomyocyte
+DefaultAssay(sample) <- "RNA"
+expdata <- GetAssayData(sample)
+ 
+Pop1 <- geneset_e2f_target
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$geneset_e2f_target<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "geneset_e2f_target",reduction = 'umap', order = TRUE, raster =FALSE ) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_CM_e2f_target.pdf",width = 5, height = 4)
+
+Pop1 <- geneset_myc_target_v1
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$geneset_myc_target_v1<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "geneset_myc_target_v1",reduction = 'umap', order = TRUE, raster =FALSE ) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_CM_myc_v1.pdf",width = 5, height = 4)
+
+Pop1 <- geneset_myc_target_v2
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$geneset_myc_target_v2<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "geneset_myc_target_v2",reduction = 'umap', order = TRUE, raster =FALSE ) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_CM_myc_v2.pdf",width = 5, height = 4)
+
+Pop1 <- geneset_il6_jak_stat3 
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$geneset_il6_jak_stat3<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "geneset_il6_jak_stat3",reduction = 'umap', order = TRUE, raster =FALSE ) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_CM_il6_jak.pdf",width = 5, height = 4)
+
+Pop1 <- geneset_dna_repair 
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$geneset_dna_repair<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "geneset_dna_repair",reduction = 'umap', order = TRUE, raster =FALSE ) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_CM_dna_repair.pdf",width = 5, height = 4)
+ 
+ 
+genesets.score <- c(
+'geneset_e2f_target',
+'geneset_myc_target_v1',
+'geneset_myc_target_v2',
+'geneset_il6_jak_stat3',
+'geneset_dna_repair'
+)
+ 
+p1 <- DotPlot(object=sample, features = genesets.score)  +ggplot2:::coord_flip()+ RotatedAxis()  + ggtitle('Z score of Hallmark Genesets') #
+p1
+ggsave(p1,file="Z_haf_CM_genesets_dot_cell_state.pdf",width = 7.5, height = 3)
+
+
+#GSEA for group
+GO_database <- 'org.Hs.eg.db' # http://bioconductor.org/packages/release/BiocViews.html#___OrgDb
+KEGG_database <- 'hsa' # http://www.genome.jp/kegg/catalog/org_list.html
+
+Idents(haf_Cardiomyocyte) <- haf_Cardiomyocyte@meta.data$group
+left.markers <- FindMarkers(haf_Cardiomyocyte, ident.1 = "AF_left", ident.2 = "Ctrl_left", assay = 'RNA', 
+                        group.by = 'group', logfc.threshold = 0.25, min.pct = 0, pseudocount.use = 0.01)
+right.markers <- FindMarkers(haf_Cardiomyocyte, ident.1 = "AF_right", ident.2 = "Ctrl_right", assay = 'RNA', 
+                        group.by = 'group', logfc.threshold = 0.25, min.pct = 0, pseudocount.use = 0.01)
+write.csv(left.markers, "haf_Cardiomyocyte_left.markers.csv")
+write.csv(right.markers, "haf_Cardiomyocyte_right.markers.csv")
+
+object.markers <- left.markers
+object.markers$names <- rownames(object.markers)
+object.markers$SYMBOL <- object.markers$names
+SYMBOL <- object.markers$SYMBOL
+gene.df <- bitr(SYMBOL, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+info_merge <- merge(object.markers,gene.df,by='SYMBOL')
+GSEA_input <- info_merge$avg_log2FC
+names(GSEA_input) = info_merge$ENTREZID
+GSEA_input = sort(GSEA_input, decreasing = TRUE)
+GSEA_KEGG <- gseKEGG(GSEA_input, organism = KEGG_database, pvalueCutoff = 0.05)#GSEA富集分析
+ridge_kegg <- ridgeplot(GSEA_KEGG, label_format=40, showCategory = 10) 
+ridge_kegg
+require(ggplotify)
+ridge_kegg_haf_Cardiomyocyte = as.ggplot(ridge_kegg )
+ridge_kegg_haf_Cardiomyocyte<- ridge_kegg_haf_Cardiomyocyte+ggtitle('KEGG GSEA of AF_left DEG in Cardiomyocyte') 
+ggsave(ridge_kegg_haf_Cardiomyocyte,file="haf_Cardiomyocyte_GSEA_kegg_left_ridge.pdf",width = 7.5, height = 6)
+p1 <- dotplot(GSEA_KEGG, label_format=40, showCategory = 10,split=".sign") + facet_grid(.~.sign) +ggtitle('KEGG GSEA of AF_left DEG in Cardiomyocyte')+theme(plot.title = element_text(hjust = 1))
+ggsave(p1,file="haf_Cardiomyocyte_GSEA_kegg_left_dot_facet.pdf",width = 7.5, height = 6) 
+kegg.result <- GSEA_KEGG@result
+write.csv(kegg.result, "kegg.result_haf_Cardiomyocyte_left.csv")
+
+object.markers <- right.markers
+object.markers$names <- rownames(object.markers)
+object.markers$SYMBOL <- object.markers$names
+SYMBOL <- object.markers$SYMBOL
+gene.df <- bitr(SYMBOL, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+info_merge <- merge(object.markers,gene.df,by='SYMBOL')
+GSEA_input <- info_merge$avg_log2FC
+names(GSEA_input) = info_merge$ENTREZID
+GSEA_input = sort(GSEA_input, decreasing = TRUE)
+GSEA_KEGG <- gseKEGG(GSEA_input, organism = KEGG_database, pvalueCutoff = 0.05)#GSEA富集分析
+ridge_kegg <- ridgeplot(GSEA_KEGG, label_format=40, showCategory = 10) 
+ridge_kegg
+require(ggplotify)
+ridge_kegg_haf_Cardiomyocyte = as.ggplot(ridge_kegg )
+ridge_kegg_haf_Cardiomyocyte<- ridge_kegg_haf_Cardiomyocyte+ggtitle('KEGG GSEA of AF_right DEG') 
+ggsave(ridge_kegg_haf_Cardiomyocyte,file="haf_Cardiomyocyte_GSEA_kegg_right_ridge.pdf",width = 7.5, height = 6)
+p1 <- dotplot(GSEA_KEGG, label_format=40, showCategory = 10,split=".sign") + facet_grid(.~.sign) +ggtitle('KEGG GSEA of AF_right DEG')+theme(plot.title = element_text(hjust = 1))
+ggsave(p1,file="haf_Cardiomyocyte_GSEA_kegg_right_dot_facet.pdf",width = 8, height = 6)
+kegg.result <- GSEA_KEGG@result
+write.csv(kegg.result, "kegg.result_haf_Cardiomyocyte_right.csv")
+
+###### group marker genes
+library(ArchR)
+sce <- haf_Cardiomyocyte
+Idents(sce) <- sce@meta.data$group
+sce_marker <- FindAllMarkers(sce, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+sce_marker <- subset(sce_marker, avg_log2FC <= -1 | avg_log2FC >= 1)
+sce_marker <- subset(sce_marker, p_val <= 0.05)
+
+AF_left_marker_subset <- subset(sce_marker, cluster=='AF_left')
+AF_left_marker <- AF_left_marker_subset$gene
+AF_right_marker_subset <- subset(sce_marker, cluster=='AF_right')
+AF_right_marker <- AF_right_marker_subset$gene
+Ctrl_left_marker_subset <- subset(sce_marker, cluster=='Ctrl_left')
+Ctrl_left_marker <- Ctrl_left_marker_subset$gene
+Ctrl_right_marker_subset <- subset(sce_marker, cluster=='Ctrl_right')
+Ctrl_right_marker <- Ctrl_right_marker_subset$gene
+
+sample <- sce
+DefaultAssay(sample) <- "RNA"
+expdata <- GetAssayData(sample)
+Pop1 <- AF_left_marker
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$AF_left_marker_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "AF_left_marker_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_AF_left.pdf",width = 5, height = 4)
+
+Pop1 <- Ctrl_left_marker
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$Ctrl_left_marker_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "Ctrl_left_marker_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_Ctrl_left.pdf",width = 5, height = 4)
+
+Pop1 <- AF_right_marker
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$AF_right_marker_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "AF_right_marker_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_AF_right.pdf",width = 5, height = 4)
+
+Pop1 <- Ctrl_right_marker
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$Ctrl_right_marker_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "Ctrl_right_marker_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_Ctrl_right.pdf",width = 5, height = 4)
 
 
 
+#CytoTRACE score
+library(CytoTRACE)
+expr_matrix <-as.matrix(haf_Cardiomyocyte@assays$RNA@counts)
+meta <- haf_Cardiomyocyte@meta.data
+t <- meta$cell_state
+t.name <- rownames(meta)
+names(t) <- t.name
+cyto.ob <- as.matrix(expr_matrix)
+results <- CytoTRACE(cyto.ob)
+plotCytoTRACE(results)
+plotCytoTRACE(results, phenotype = t)
+plotCytoGenes(results, numOfGenes = 10)
 
 
-
-
-
-
+#monocle
+library(monocle)
+Idents(haf_Cardiomyocyte) <- 'cell_state'
+my_levels <- c(  'CM01', 'CM02', 'CM03', 'CM04', "CM05", "CM06", "CM07", "CM08")
+Idents(haf_Cardiomyocyte) <- factor(Idents(haf_Cardiomyocyte), levels = my_levels)
+expr_matrix <-as(as.matrix(haf_Cardiomyocyte@assays$RNA@counts), 'sparseMatrix')
+p_data <- haf_Cardiomyocyte@meta.data
+p_data$cell_type <- haf_Cardiomyocyte@active.ident
+f_data <- data.frame(gene_short_name = rownames(haf_Cardiomyocyte), row.names = row.names(haf_Cardiomyocyte))
+pd <- new("AnnotatedDataFrame", data = p_data)
+fd <- new("AnnotatedDataFrame", data = f_data)
+cds <- newCellDataSet(expr_matrix,
+                  phenoData = pd,
+                  featureData = fd,
+                  lowerDetectionLimit = 0.5,
+                  expressionFamily = negbinomial.size())
+cds <- estimateSizeFactors(cds)
+cds <- estimateDispersions(cds)
+express_genes <- VariableFeatures(haf_Cardiomyocyte)
+cds <- setOrderingFilter(cds, express_genes)
+diff <- differentialGeneTest(cds[express_genes,], fullModelFormulaStr = '~cell_type', cores = 1)
+deg <- subset(diff, qval < 0.01)
+deg <- deg[order(deg$qval, decreasing = F),]
+write.table(deg,file = 'haf_Cardiomyocyte_monocle2.DEG.xls', col.names = T, row.names = F, quote = F)
+ordergene <- rownames(deg)[order(deg$qval)][1:400]
+cds <- setOrderingFilter(cds, ordergene)
+cds <- reduceDimension(cds, max_components = 2, method = "DDRTree")
+cds <- orderCells(cds)
+plot_cell_trajectory(cds, color_by = 'State', cell_size = 1.5, show_backbone = TRUE)+ scale_color_manual(values = mycolor2) 
+plot_cell_trajectory(cds, color_by = 'cell_state', cell_size = 1.5, state_number_size = 8, show_backbone = TRUE)+ scale_color_manual(values = mycolor) 
+cds <- orderCells(cds, root_state = 4) 
+saveRDS(cds, file='haf_Cardiomyocyte_cds_m2.rds')
+#cds <- readRDS("E:/Work01/AF01/Rdata/Cardiomyocyte/haf_Cardiomyocyte_cds_m2.RDS")
+p1 <- plot_cell_trajectory(cds, color_by = 'Pseudotime', cell_size = 1.5, state_number_size = 4, show_backbone = TRUE)
+ggsave(p1, file='haf_Cardiomyocyte.pseudotime.pdf', width = 5, height = 4)
+p1 <- plot_cell_trajectory(cds, color_by = 'cell_state', cell_size = 1.5, state_number_size = 8, show_backbone = TRUE)+ scale_color_manual(values = mycolor) 
+ggsave(p1, file='haf_Cardiomyocyte_cell_trajectory_celltype.pdf', width = 7.5, height = 6)
+p1 <- plot_cell_trajectory(cds, color_by = 'State', cell_size = 1.5, show_backbone = TRUE)+ scale_color_manual(values = mycolor2) 
+ggsave(p1, file='haf_Cardiomyocyte_cell_trajectory_state.pdf', width = 5, height = 4)
+p1 <- plot_cell_trajectory(cds, color_by = 'group', cell_size = 1.5, show_backbone = TRUE)+ facet_wrap('~group', nrow = 2) +scale_color_manual(values = mycolor1) 
+ggsave(p1, file='haf_Cardiomyocyte_cell_trajectory_group.pdf', width = 7.5, height = 6)
+p1 <- plot_cell_trajectory(cds, color_by = 'cell_state', cell_size = 1.5, show_backbone = TRUE)+ facet_wrap('~cell_state', ncol = 4) +scale_color_manual(values = mycolor)
+ggsave(p1, file='haf_Cardiomyocyte_cell_trajectory_celltype_split.pdf', width = 8, height = 4.8)
+ 
+library(ggpubr)
+df <- pData(cds)
+p1 <- ggplot(df, aes(Pseudotime, colour = cell_type, fill= cell_type)) +
+    geom_density(bw = 0.5, size = 1, alpha = 0.5) + theme_classic2()
+p2 <- p1+ scale_color_lancet()
+ggsave('haf_Cardiomyocyte_cell_trajectory_cell.pdf', plot = p2, width = 7.5, height = 3)
 
 
 
