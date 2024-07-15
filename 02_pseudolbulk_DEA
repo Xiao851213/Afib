@@ -22,7 +22,7 @@ library(MetBrewer)
 library(ggsci)
 library(ggrepel)
 
-setwd("./Rdata/Deg/")
+setwd("D:/Work/AF/Rdata/Deg/")
  
 options(Seurat.object.assay.version = "v3")
 set.seed(12345)
