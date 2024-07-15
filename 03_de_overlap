@@ -143,7 +143,6 @@ data_AFleft_Ctrlleft <- filter(data, data$sig == "Significant")
 ######
 
 
-
 ##### AFright vs Ctrlright
 Adipocyte <- read_delim("./DE_analysis/AFright_Ctrlright/Adipocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
 Adipocyte$cell <- "Adipocyte"
@@ -343,8 +342,9 @@ write.csv(df_Count, "./DE_analysis/AF_unique_genes/n_uniquegenes_AFright.csv",
           quote = FALSE, 
           row.names = FALSE)
 n_uniquegenes_AFright <- df_Count
+#####
 
-#Scatter plot
+##### Scatter plot
 colnames(n_uniquegenes_AFleft) <- c('cell_types_AFleft', 'direction_AFleft', 'n_genes_AFleft', 'sumGenes_AFleft')
 colnames(n_uniquegenes_AFright) <- c('cell_types_AFright', 'direction_AFright', 'n_genes_AFright', 'sumGenes_AFright')
 n_uniquegenes_AFleft <- n_uniquegenes_AFleft[order(n_uniquegenes_AFleft$cell_types),]
@@ -372,10 +372,10 @@ p1_lr <- ggplot(remodeling, aes(sumGenes_AFleft, sumGenes_AFright, color=cell_ty
               ) 
 p1_lr
 ggsave(p1_lr,  filename = paste("./DE_analysis/AF_unique_genes/scatter_ngenes_AF.pdf",sep=""), height = 4, width = 5)
+#####
 
 
-
-#UPSET PLOT
+##### UPSET PLOT
 # AFleft
 # UPSET PLOT: Down
 listInput = list()
@@ -466,9 +466,85 @@ p2 <-  as.ggplot(p1)
 p3 <- p2+ggtitle('cross upregulated Signature_AF_right')
 ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFright_up.pdf",sep=""), height = 4, width = 5)
 ```
+#####
 
 
+##### Venn Diagrams
+```{r}
+# Prepare a palette of 3 colors with R colorbrewer:
+library(RColorBrewer)
+myCol <- brewer.pal(3, "Pastel2")
+futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
+```
 
+#Total_2set
+library(MetBrewer)
+display_all()
+new_colors2 <- paste0(met.brewer("Egypt"))
+myCol <- new_colors2[c(1:2)]
+data_AFleft_Ctrlleft_subset <- data_AFleft_Ctrlleft$gene #1490
+data_AFright_Ctrlright_subset <- data_AFright_Ctrlright$gene #6
+data_AFleft_AFright_subset <- data_AFleft_AFright$gene #621
+p1 <- venn.diagram(
+        x = list(data_AFleft_Ctrlleft_subset, 
+                   data_AFright_Ctrlright_subset),
+        category.names = c("AF_left vs Ctrl_left" , "AF_right vs Ctrl_right"),
+        filename = NULL, 
+
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .4,
+        fontface = "plain",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.4,
+        cat.fontface = "plain",
+        cat.default.pos = "outer",
+        cat.pos = c(-30, 30 ),
+        cat.dist = c(0.055, 0.055 ),
+        cat.fontfamily = "sans"
+        #rotation = 1,
+       # rotation.center = 30
+)
+pdf("./DE_analysis/Rpost_unique_genes/Venn_total_AF_2set.pdf",width = 2, height = 2)
+grid.draw(p1)
+dev.off()
+#####
+
+
+#### heatmap
+# Load libraries
+library(scater)
+library(Seurat)
+library(tidyverse)
+library(cowplot)
+library(Matrix.utils)
+library(edgeR)
+library(dplyr)
+library(magrittr)
+library(Matrix)
+library(purrr)
+library(reshape2)
+library(S4Vectors)
+library(tibble)
+library(SingleCellExperiment)
+library(pheatmap)
+library(apeglm)
+library(png)
+library(DESeq2)
+library(RColorBrewer)
+library(ArchR)
+library(MetBrewer)
+
+setwd("D:/Work/AF/Rdata/Deg/")
+
+haf <- readRDS("D:/Work/AF/Rdata/Total/haf_01.RDS")
+table(haf$group)
+unique(haf$group)
 
 
 
