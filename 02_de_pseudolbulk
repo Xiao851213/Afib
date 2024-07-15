@@ -279,27 +279,12 @@ write.csv(sig_res,
 ```
 
 dir.create("DE_analysis")
-dir.create("DE_analysis/AF_Ctrl/")
 dir.create("DE_analysis/AFleft_AFright/")
 dir.create("DE_analysis/AFleft_Ctrlleft/")
 dir.create("DE_analysis/AFright_Ctrlright/")
 dir.create("DE_analysis/Ctrlleft_Ctrlright/")
-dir.create("DE_analysis/left_right/")
 
 
-
-# AF vs Ctrl
-metadata$HAF <-  NA
-metadata$HAF[which(str_detect(metadata$group_id, "^Ctrl_"))] <- "Ctrl"
-metadata$HAF[which(str_detect(metadata$group_id, "^AF_"))] <- "AF"
-# Run the script on all clusters comparing stim condition relative to control condition
-map(1:length(clusters), get_dds_results, metadata_subset = metadata, fname = "AF_Ctrl")
-
-# left vs right
-metadata$HAF <-  NA
-metadata$HAF[which(str_detect(metadata$group_id, "left"))] <- "left"
-metadata$HAF[which(str_detect(metadata$group_id, "right"))] <- "right"
-map(1:length(clusters), get_dds_results, metadata_subset = metadata, fname = "left_right")
 
 # AF_left vs Ctrl_left
 metadata$HAF <-  NA
