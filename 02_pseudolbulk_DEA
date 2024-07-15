@@ -23,15 +23,7 @@ library(ggsci)
 library(ggrepel)
 
 setwd("./Rdata/Deg/")
-
-mycolor1<-pal_npg("nrc", alpha = 1)(10)
-mycolor2<-pal_aaas("default", alpha = 1)(10)
-mycolor3<-pal_nejm("default", alpha = 1)(8)
-mycolor4<-pal_lancet("lanonc", alpha = 1)(9)
-mycolor5<-pal_jama("default", alpha = 1)(7)
-mycolor6<-pal_jco("default", alpha = 1)(10)
-mycolor <-c(mycolor3,mycolor1,mycolor2,mycolor4,mycolor5,mycolor6)
-
+ 
 options(Seurat.object.assay.version = "v3")
 set.seed(12345)
 haf <- readRDS("./Rdata/Total/haf_01.RDS")
@@ -293,7 +285,7 @@ dir.create("DE_analysis/AFleft_Ctrlleft/")
 dir.create("DE_analysis/AFright_Ctrlright/")
 dir.create("DE_analysis/Ctrlleft_Ctrlright/")
 dir.create("DE_analysis/left_right/")
-dir.create("DE_analysis/AF_unique_genes/")
+
 
 
 # AF vs Ctrl
