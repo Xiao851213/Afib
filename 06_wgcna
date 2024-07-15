@@ -1,0 +1,345 @@
+#each cell type was analyzed in similar steps; this code uses cardiomyocyte data as an example.
+
+seurat_obj <- haf_Cardiomyocyte
+
+library(Seurat)
+library(WGCNA)
+library(hdWGCNA) 
+options(Seurat.object.assay.version = "v3")
+
+#set up the Seurat object
+seurat_obj <- SetupForWGCNA(
+  seurat_obj,
+  gene_select = "fraction", # the gene selection approach
+  fraction = 0.05, # fraction of cells that a gene needs to be expressed to be included
+  wgcna_name = "hAF_CM" # the name of the hdWGCNA experiment
+)
+
+# construct metacells  in each group
+seurat_obj <- MetacellsByGroups(
+  seurat_obj = seurat_obj,
+  group.by = c("cell_type"), 
+  reduction = 'harmony', # select the dimensionality reduction to perform KNN on
+  k = 25, # nearest-neighbors parameter
+  max_shared = 10, # maximum number of shared cells between two metacells
+  ident.group = 'cell_type' # set the Idents of the metacell seurat object
+)
+# Normalize metacell expression matrix:
+seurat_obj <- NormalizeMetacells(seurat_obj)
+
+seurat_obj <- SetDatExpr(
+  seurat_obj,
+  assay = 'RNA', # using RNA assay
+  slot = 'data' # using normalized data
+)
+
+# Test different soft powers:
+seurat_obj <- TestSoftPowers(
+  seurat_obj,
+  networkType = 'signed' 
+)
+# plot the results:
+plot_list <- PlotSoftPowers(seurat_obj)
+# Assemble with patchwork
+p1 <- wrap_plots(plot_list, CMol=2)
+ggsave(p1,file="hAF_CM_hdwgcna_spt.pdf",width = 10, height = 8)
+p1
+
+# construct co-expression network:
+seurat_obj <- ConstructNetwork(
+  seurat_obj, soft_power=4, #depends on the result of the above step.
+  setDatExpr=FALSE,
+  overwrite_tom = TRUE,
+  tom_name = 'hAF_CM' # name of the topoligical overlap matrix written to disk
+)
+
+TOM <- GetTOM(seurat_obj)
+
+# Module Eigengenes and Connectivity
+# need to run ScaleData first or else harmony throws an error:
+seurat_obj <- ScaleData(seurat_obj, features=VariableFeatures(seurat_obj))
+# compute all MEs in the full single-cell dataset
+seurat_obj <- ModuleEigengenes(
+ seurat_obj,
+ group.by.vars="sample"
+)
+# harmonized module eigengenes:
+hMEs <- GetMEs(seurat_obj)
+# module eigengenes:
+MEs <- GetMEs(seurat_obj, harmonized=FALSE)
+
+# compute eigengene-based connectivity (kME):
+seurat_obj <- ModuleConnectivity(
+  seurat_obj
+)
+# rename the modules
+seurat_obj <- ResetModuleNames(
+  seurat_obj,
+  new_name = "hAF-CM-M"
+)
+
+#BiocManager::install('MetBrewer')
+library(MetBrewer)
+display_all()
+new_colors1 <- paste0(met.brewer("Austria"))
+new_colors2 <- paste0(met.brewer("Egypt"))
+new_colors0 <- paste0(met.brewer("Java"))
+new_colors3 <- c(new_colors1, new_colors2,new_colors0)
+new_colors3 <- new_colors3[c(1:7)] #depends on the count of modules
+seurat_obj <- ResetModuleColors(seurat_obj, new_colors3)
+
+PlotDendrogram(seurat_obj, main='hAF_CM_hdWGCNA_Dendrogram')
+# hAF_CM_hdwgcna_dendrogram
+
+# Plot genes ranked by kME for each module
+p <- PlotKMEs(seurat_obj, ncol=4)
+p
+ggsave(p,file="hAF_CM_hdwgcna_gene.pdf",width = 10, height = 4)
+
+
+# make a feature plot of hMEs for each module
+plot_list <- ModuleFeaturePlot(
+  seurat_obj,
+  features='hMEs', # plot the hMEs
+  order=TRUE # order so the points with the highest hMEs are on top
+)
+
+# Stitch together with patchwork
+p1 <- wrap_plots(plot_list, ncol=4)
+ggsave(p1,file="hAF_CM_hdwgcna_feature.pdf",width =10, height = 4)
+
+
+# get hMEs from seurat object
+MEs <- GetMEs(seurat_obj, harmonized=TRUE)
+mods <- colnames(MEs); mods <- mods[mods != 'grey']
+
+# add hMEs to Seurat meta-data:
+seurat_obj@meta.data <- cbind(seurat_obj@meta.data, MEs)
+
+# plot with Seurat's DotPlot function
+p <- DotPlot(seurat_obj, features=mods, group.by = 'cell_state')
+# Flip the x/y axes, rotate the axis labels, and change the color scheme:
+p1 <- p +
+  #coord_flip() +
+  RotatedAxis() +
+  scale_color_gradient2(high='red', mid='grey95', low='blue')
+# plot output
+p1
+ggsave(p1,file="hAF_CM_hdwgcna_dot.pdf",width =5.5, height = 4)
+
+# plot with Seurat's DotPlot function
+p <- DotPlot(seurat_obj, features=mods, group.by = 'group')
+# Flip the x/y axes, rotate the axis labels, and change the color scheme:
+p1 <- p +
+  #coord_flip() +
+  RotatedAxis() +
+  scale_color_gradient2(high='red', mid='grey95', low='blue')
+# plot output
+p1
+ggsave(p1,file="hAF_CM_hdwgcna_dot_group.pdf",width = 5.5, height = 2.5)
+
+#Enrichment analysis
+library(enrichR)
+library(GeneOverlap)
+# enrichr databases to test
+dbs <- c('GO_Biological_Process_2021','GO_Cellular_Component_2021','GO_Molecular_Function_2021')
+# perform enrichment tests
+seurat_obj <- RunEnrichr(
+  seurat_obj,
+  dbs=dbs, # character vector of enrichr databases to test
+  max_genes = 100 # number of genes per module to test
+)
+# retrieve the output table
+enrich_df <- GetEnrichrTable(seurat_obj)
+
+
+# Make GO term plots:
+EnrichrBarPlot(
+  seurat_obj,
+  outdir = "enrichr_plots", # name of output directory
+  n_terms = 10, # number of enriched terms to show (sometimes more show if there are ties!!!)
+  plot_size = c(5,6), # width, height of the output .pdfs
+  logscale=TRUE #
+)
+
+# enrichr dotplot
+p1 <- EnrichrDotPlot(
+  seurat_obj,
+  mods = "all", # use all modules (this is the default behavior)
+  database = "GO_Biological_Process_2021",
+  n_terms=1 # number of terms for each module
+) 
+ggsave(p1,file="hAF_CM_hdwgcna_gobp.pdf",width = 6.5, height = 4)
+p1 <- EnrichrDotPlot(
+  seurat_obj,
+  mods = "all", # use all modules (this is the default behavior)
+  database = "GO_Cellular_Component_2021",
+  n_terms=1 # number of terms for each module
+) 
+ggsave(p1,file="hAF_CM_hdwgcna_gocc.pdf",width = 6.5, height = 4)
+p1 <- EnrichrDotPlot(
+  seurat_obj,
+  mods = "all", # use all modules (this is the default behavior)
+  database = "GO_Molecular_Function_2021",
+  n_terms=1 # number of terms for each module
+) 
+ggsave(p1,file="hAF_CM_hdwgcna_gomf.pdf",width = 6.5, height = 4)
+
+#Marker gene overlap analysis for cell subpopulation
+# compute cell-type marker genes with Seurat:
+Idents(seurat_obj) <- seurat_obj@meta.data$cell_state
+my_levels <- c( 'CM01', 'CM02', 'CM03', 'CM04', "CM05", "CM06", "CM07", "CM08", "CM09")
+Idents(seurat_obj) <- factor(Idents(seurat_obj), levels = my_levels)
+
+markers <- Seurat::FindAllMarkers(
+  seurat_obj,
+  only.pos = TRUE,
+  logfc.threshold=1
+)
+# compute marker gene overlaps
+overlap_df <- OverlapModulesDEGs(
+  seurat_obj,
+  deg_df = markers,
+  fc_cutoff = 1 # log fold change cutoff for overlap analysis
+)
+
+# overlap barplot, produces a plot for each cell type
+plot_list <- OverlapBarPlot(overlap_df)
+# stitch plots with patchwork
+p1 <- wrap_plots(plot_list, ncol=4)
+p1
+ggsave(p1,file="hAF_CM_hdwgcna_overlap_bar.pdf",width = 10, height = 6)
+# plot odds ratio of the overlap as a dot plot
+p1 <- OverlapDotPlot(
+  overlap_df,
+  plot_var = 'odds_ratio') +
+  #coord_flip() +
+  ggtitle('Overlap of modules & cell-type markers')
+ggsave(p1,file="hAF_CM_hdwgcna_overlap_dot.pdf",width = 7.5, height = 3)
+
+
+#Marker gene overlap analysis for groups
+# compute cell-type marker genes with Seurat:
+Idents(seurat_obj) <- seurat_obj$group
+my_levels <- c('AF_left', 'Ctrl_left', 'AF_right', 'Ctrl_right')
+Idents(seurat_obj) <- factor(Idents(seurat_obj), levels = my_levels)
+markers <- Seurat::FindAllMarkers(
+  seurat_obj,
+  only.pos = TRUE,
+  logfc.threshold=1
+)
+# compute marker gene overlaps
+overlap_df <- OverlapModulesDEGs(
+  seurat_obj,
+  deg_df = markers,
+  fc_cutoff = 1 # log fold change cutoff for overlap analysis
+)
+# plot odds ratio of the overlap as a dot plot
+p1 <- OverlapDotPlot(
+  overlap_df,
+  plot_var = 'odds_ratio') +
+  coord_flip() +
+  ggtitle('Overlap of modules & cell-type markers')
+ggsave(p1,file="hAF_CM_hdwgcna_overlap_dot_group.pdf",width = 5, height = 2.5)
+# overlap barplot, produces a plot for each cell type
+plot_list <- OverlapBarPlot(overlap_df)
+# stitch plots with patchwork
+p1 <- wrap_plots(plot_list, ncol=4)
+ggsave(p1,file="hAF_FIB_hdwgcna_overlap_bar_group.pdf",width = 10, height = 2)
+
+
+#Network Visualization
+library(igraph)
+ModuleNetworkPlot(seurat_obj)
+
+#Applying UMAP to co-expression networks
+seurat_obj <- RunModuleUMAP(
+  seurat_obj,
+  n_hubs = 10, # number of hub genes to include for the UMAP embedding
+  n_neighbors=15, # neighbors parameter for UMAP
+  min_dist=0.1 # min distance between points in UMAP space
+)
+# get the hub gene UMAP table from the seurat object
+umap_df <- GetModuleUMAP(seurat_obj)
+
+
+# plot with ggplot
+p <- ggplot(umap_df, aes(x=UMAP1, y=UMAP2)) +
+  geom_point(
+   color=umap_df$color,
+   size=umap_df$kME*2
+  ) +
+  umap_theme()
+
+pdf(paste0( 'hAF_CM_hubgene_umap_ggplot_uns.pdf'), width=5, height=5)
+p
+dev.off()
+
+
+# plot with ggplot
+plot_df <- umap_df
+
+# compute coordinates for cluster labels
+centroid_df <- data.frame()
+for(cur_cluster in unique(plot_df[['module']])){
+  cur_meta <- plot_df[plot_df[['module']] == cur_cluster,]
+  df <- data.frame(
+    cluster = cur_cluster,
+    UMAP1 = mean(cur_meta$UMAP1),
+    UMAP2 = mean(cur_meta$UMAP2)
+  )
+  centroid_df <- rbind(centroid_df, df)
+}
+
+# add annotation
+hub_genes <- GetHubGenes(seurat_obj, 3)
+anno_genes <- hub_genes$gene_name
+plot_df$anno <- ifelse(plot_df$gene %in% anno_genes, umap_df$gene, '')
+
+plot_df_anno <- subset(plot_df, anno != '')
+p <-  plot_df %>%
+  ggplot(aes(x=UMAP1, y=UMAP2, color=module)) +
+  ggrastr::rasterise(
+    geom_point(
+      inherit.aes=FALSE,
+      data=plot_df,
+      aes(x=UMAP1, y=UMAP2, color=module),
+      color=plot_df$color,
+      size=plot_df$kME,
+    ), dpi=800, dpi_scale=0.5) +
+  geom_point(
+    inherit.aes = FALSE,
+    data = plot_df_anno,
+    shape=21, color='black',
+    fill=plot_df_anno$color,
+    size=plot_df_anno$kME,
+    aes(x=UMAP1, y=UMAP2, fill=module)
+  ) +
+  # add labels
+  ggrepel::geom_text_repel(data = centroid_df, label=centroid_df$cluster, color='black', max.overlaps=Inf, size=3, fontface='bold') +
+  geom_text_repel(label=plot_df$anno, max.overlaps=Inf, color='black', fontface='italic', size=2) +
+  umap_theme() + NoLegend() +
+  coord_equal() +
+  theme(
+    plot.margin = margin(0,0,0,0)
+  )
+
+  pdf(paste0('hAF_CM_hubgene_umap_ggplot.pdf'), width=5, height=5)
+  print(p)
+  dev.off()
+
+library(reshape2)
+library(igraph)
+pdf(paste0('hAF_CM_hubgene_umap_igraph.pdf'), width=10, height=10)
+ModuleUMAPPlot(
+  seurat_obj,
+  edge.alpha=0.5,
+  sample_edges=TRUE,
+  keep_grey_edges=FALSE,
+  edge_prop=0.075,
+  label_hubs=3
+)
+dev.off()
+
+saveRDS(seurat_obj, file='hAF_CM_hdWGCNA_object.rds')
+
