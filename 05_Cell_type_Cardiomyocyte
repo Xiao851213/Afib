@@ -189,84 +189,6 @@ p1 <- DotPlot(haf_Cardiomyocyte, features = gene.group, group.by = "cell_state")
 p1
 ggsave(p1,file="haf_Cardiomyocyte_dot_group_cell_state.pdf", width = 5.5, height = 6)
 
-#correlation
-av_haf_Cardiomyocyte <- AverageExpression(haf_Cardiomyocyte, group.by = "cell_state", assays = "RNA")
-av_haf_Cardiomyocyte <- av_haf_Cardiomyocyte[[1]]
-cg_haf_Cardiomyocyte = names(tail(sort(apply(av_haf_Cardiomyocyte,1,sd)),2000))
-av_haf_Cardiomyocyte <- as.data.frame(av_haf_Cardiomyocyte)
-corplot_haf_Cardiomyocyte <- pheatmap::pheatmap(cor(av_haf_Cardiomyocyte[cg_haf_Cardiomyocyte,],method = 'spearman'))
-ggsave(corplot_haf_Cardiomyocyte,file="corplot_haf_Cardiomyocyte.pdf",width = 5, height = 4)
-
-
-#Proportion
-plotC <- table(haf_Cardiomyocyte@meta.data$group, haf_Cardiomyocyte@meta.data$cell_state)  %>% melt()
-colnames(plotC) <- c("Group", "Cell_Type","Number")
-plotC$Group <- factor(plotC$Group, levels=c('AF_left', 'Ctrl_left', 'AF_right', 'Ctrl_right'),ordered = TRUE)
-write.csv(plotC,file = 'haf_Cardiomyocyte_propotion_cell_type_group.csv')
-#colomplot
-pC1 <- ggplot(data = plotC, aes(x = Group, y = Number, fill = as.factor(Cell_Type))) +
-geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="stack")+
-scale_fill_manual(values=mycolor) +
-theme_bw()+
-theme(panel.grid =element_blank()) +
-labs(x="",y="Average number")+
-theme(axis.text = element_text(size=12, colour = "black"))+
-theme(axis.title.y = element_text(size=12, colour = "black"))+
-theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
-theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))
-#ratioplot
-pC2 <- ggplot(data = plotC, aes(x = Group, y = Number, fill = as.factor(Cell_Type))) +
-geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="fill")+
-scale_fill_manual(values=mycolor) +
-theme_bw()+
-theme(panel.grid =element_blank()) +
-labs(x="",y="Cell proportion")+
-scale_y_continuous(labels = percent)+ ####move y axi
-theme(axis.text = element_text(size=12, colour = "black"))+
-theme(axis.title.y = element_text(size=12, colour = "black"))+
-theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
-theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))#?????????45?
-#bind two plot
-p4 <- pC1 + pC2 + plot_layout(ncol = 2, widths = c(1,1),guides = 'collect')
-p4
-#save plot
-ggsave(p4,file="haf_Cardiomyocyte_Propotion_Group.pdf",width = 6, height = 4)
-
-plotC <- table(haf_Cardiomyocyte@meta.data$sample, haf_Cardiomyocyte@meta.data$cell_state) %>% melt()
-colnames(plotC) <- c("Sample", "Cell_Type","Number")
-plotC$Sample <- factor(plotC$Sample, 
-levels=c('P01_L_AF',   'P02_L_AF',   'P03_L_AF',   'P04_L_AF', 'P05_L_AF', 'P06_L_AF',   'P07_L_AF',   'P08_L_AF' ,
-'P09_L_CTRL', 'P10_L_CTRL',   'P11_L_CTRL', 'P12_L_CTRL',
-'P04_R_AF',   'P05_R_AF',   'P13_R_AF',   'P14_R_AF',
-'P10_R_CTRL',  'P12_R_CTRL',   'P15_R_CTRL', 'P16_R_CTRL', 'P17_R_CTRL', 'P18_R_CTRL' ),ordered = TRUE)
-write.csv(plotC,file = 'haf_propotion_Cardiomyocyte_Sample.csv')
-#colomplot
-pC1 <- ggplot(data = plotC, aes(x = Sample, y = Number, fill = as.factor(Cell_Type))) +
-geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="stack")+
-scale_fill_manual(values=mycolor) +
-theme_bw()+
-theme(panel.grid =element_blank()) +
-labs(x="",y="Average number")+
-theme(axis.text = element_text(size=12, colour = "black"))+
-theme(axis.title.y = element_text(size=12, colour = "black"))+
-theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
-theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))
-#ratioplot
-pC2 <- ggplot(data = plotC, aes(x = Sample, y = Number, fill = as.factor(Cell_Type))) +
-geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="fill")+
-scale_fill_manual(values=mycolor) +
-theme_bw()+
-theme(panel.grid =element_blank()) +
-labs(x="",y="Cell proportion")+
-scale_y_continuous(labels = percent)+ ####move y axi
-theme(axis.text = element_text(size=12, colour = "black"))+
-theme(axis.title.y = element_text(size=12, colour = "black"))+
-theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
-theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))#?????????45?
-#bind two plot
-p5 <- pC1 + pC2 + plot_layout(ncol = 2, widths = c(1,1),guides = 'collect')
-#save plot
-ggsave(p5,file="haf_Cardiomyocyte_Propotion_Sample.pdf",width = 15, height = 4)
 
 
 #gsva bar plot
@@ -655,14 +577,90 @@ ggsave(p1,file="Z_haf_Cardiomyocyte_Ctrl_right.pdf",width = 5, height = 4)
 
 
 
+#Proportion
+plotC <- table(haf_Cardiomyocyte@meta.data$group, haf_Cardiomyocyte@meta.data$cell_state)  %>% melt()
+colnames(plotC) <- c("Group", "Cell_Type","Number")
+plotC$Group <- factor(plotC$Group, levels=c('AF_left', 'Ctrl_left', 'AF_right', 'Ctrl_right'),ordered = TRUE)
+write.csv(plotC,file = 'haf_Cardiomyocyte_propotion_cell_type_group.csv')
+#colomplot
+pC1 <- ggplot(data = plotC, aes(x = Group, y = Number, fill = as.factor(Cell_Type))) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="stack")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Average number")+
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))
+#ratioplot
+pC2 <- ggplot(data = plotC, aes(x = Group, y = Number, fill = as.factor(Cell_Type))) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="fill")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Cell proportion")+
+scale_y_continuous(labels = percent)+ ####move y axi
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))#?????????45?
+#bind two plot
+p4 <- pC1 + pC2 + plot_layout(ncol = 2, widths = c(1,1),guides = 'collect')
+p4
+#save plot
+ggsave(p4,file="haf_Cardiomyocyte_Propotion_Group.pdf",width = 6, height = 4)
+
+plotC <- table(haf_Cardiomyocyte@meta.data$sample, haf_Cardiomyocyte@meta.data$cell_state) %>% melt()
+colnames(plotC) <- c("Sample", "Cell_Type","Number")
+plotC$Sample <- factor(plotC$Sample, 
+levels=c('P01_L_AF',   'P02_L_AF',   'P03_L_AF',   'P04_L_AF', 'P05_L_AF', 'P06_L_AF',   'P07_L_AF',   'P08_L_AF' ,
+'P09_L_CTRL', 'P10_L_CTRL',   'P11_L_CTRL', 'P12_L_CTRL',
+'P04_R_AF',   'P05_R_AF',   'P13_R_AF',   'P14_R_AF',
+'P10_R_CTRL',  'P12_R_CTRL',   'P15_R_CTRL', 'P16_R_CTRL', 'P17_R_CTRL', 'P18_R_CTRL' ),ordered = TRUE)
+write.csv(plotC,file = 'haf_propotion_Cardiomyocyte_Sample.csv')
+#colomplot
+pC1 <- ggplot(data = plotC, aes(x = Sample, y = Number, fill = as.factor(Cell_Type))) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="stack")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Average number")+
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))
+#ratioplot
+pC2 <- ggplot(data = plotC, aes(x = Sample, y = Number, fill = as.factor(Cell_Type))) +
+geom_bar(stat = "identity", width=0.8,aes(group=Cell_Type),position="fill")+
+scale_fill_manual(values=mycolor) +
+theme_bw()+
+theme(panel.grid =element_blank()) +
+labs(x="",y="Cell proportion")+
+scale_y_continuous(labels = percent)+ ####move y axi
+theme(axis.text = element_text(size=12, colour = "black"))+
+theme(axis.title.y = element_text(size=12, colour = "black"))+
+theme(panel.border = element_rect(size = 1, linetype = "solid", colour = "black"))+
+theme(axis.text.x = element_text(angle = 45,hjust = 0.8, vjust = 0.6))#?????????45?
+#bind two plot
+p5 <- pC1 + pC2 + plot_layout(ncol = 2, widths = c(1,1),guides = 'collect')
+#save plot
+ggsave(p5,file="haf_Cardiomyocyte_Propotion_Sample.pdf",width = 15, height = 4)
+
+
+
+
 # signature genes 
 sample <- haf_Cardiomyocyte
 DefaultAssay(sample) <- "RNA"
 expdata <- GetAssayData(sample)
 
-i <- "Cardiomyocyte"
+signature_AF_left_up_Cardiomyocyte <- read.table('./signature_AF_left_up_Cardiomyocyte.txt')
+signature_AF_left_down_Cardiomyocyte <- read.table('./signature_AF_left_down_Cardiomyocyte.txt')
+signature_AF_right_up_Cardiomyocyte <- read.table('./signature_AF_right_up_Cardiomyocyte.txt')
+signature_AF_right_down_Cardiomyocyte <- read.table('./signature_AF_right_down_Cardiomyocyte.txt')
 
-Pop1 <- desired_genes
+Pop1 <- signature_AF_left_up_Cardiomyocyte$V1
 pops<-list(Pop1)
 #Z-Scores
 z_scores<-NULL
@@ -681,23 +679,62 @@ p1 <- FeaturePlot(object=sample, features = "signature_AF_left_up_z",reduction =
 p1
 ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_left_up.pdf",width = 5, height = 4)
 
+Pop1 <- signature_AF_left_down_Cardiomyocyte$V1
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
 sample@meta.data$signature_AF_left_down_z<-z_scores[1,]
 p1 <- FeaturePlot(object=sample, features = "signature_AF_left_down_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
 p1
 ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_left_down.pdf",width = 5, height = 4)
 
+Pop1 <- signature_AF_right_up_Cardiomyocyte$V1
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
 sample@meta.data$signature_AF_right_up_z<-z_scores[1,]
 p1 <- FeaturePlot(object=sample, features = "MTRNR2L12",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
 p1
 ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_right_up.pdf",width = 5, height = 4)
 
+Pop1 <- signature_AF_right_down_Cardiomyocyte$V1
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
 sample@meta.data$signature_AF_right_down_z<-z_scores[1,]
 p1 <- FeaturePlot(object=sample, features = "AC025366.1",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
 p1
 ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_right_down.pdf",width = 5, height = 4)
 
 
-i <- "Cardiomyocyte"
+ 
 
 Pop1 <- desired_genes
 pops<-list(Pop1)
