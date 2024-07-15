@@ -344,6 +344,15 @@ write.csv(df_Count, "./DE_analysis/AF_unique_genes/n_uniquegenes_AFright.csv",
 n_uniquegenes_AFright <- df_Count
 #####
 
+library(ggsci)
+mycolor1<-pal_npg("nrc", alpha = 1)(10)
+mycolor2<-pal_aaas("default", alpha = 1)(10)
+mycolor3<-pal_nejm("default", alpha = 1)(8)
+mycolor4<-pal_lancet("lanonc", alpha = 1)(9)
+mycolor5<-pal_jama("default", alpha = 1)(7)
+mycolor6<-pal_jco("default", alpha = 1)(10)
+mycolor <-c(mycolor3,mycolor2,mycolor1,mycolor4,mycolor5,mycolor6)
+
 ##### Scatter plot
 colnames(n_uniquegenes_AFleft) <- c('cell_types_AFleft', 'direction_AFleft', 'n_genes_AFleft', 'sumGenes_AFleft')
 colnames(n_uniquegenes_AFright) <- c('cell_types_AFright', 'direction_AFright', 'n_genes_AFright', 'sumGenes_AFright')
@@ -356,9 +365,15 @@ write.csv(remodeling, "./DE_analysis/AF_unique_genes/n_uniquegenes_remodeling.cs
           quote = FALSE, 
           row.names = FALSE)
 
-p1_lr <- ggplot(remodeling, aes(sumGenes_AFleft, sumGenes_AFright, color=cell_types_AFleft)) +
+remodelings <- select(remodeling, -2)
+remodelings <- select(remodelings, -2)
+remodelings <- select(remodelings, -3)
+remodelings <- select(remodelings, -3)
+remodelings <- unique(remodelings)
+
+p1_lr <- ggplot(remodelings, aes(sumGenes_AFleft, sumGenes_AFright, color=cell_types_AFleft)) +
   geom_point(aes(size=lr)) +
-  geom_label_repel(data = subset(remodeling, lr >60), aes(label = cell_types_AFleft), color = 'black', segment.color = 'black', segment.size = 0.5, size = 4, force = T, nudge_x = 100, nudge_y = 100 )+
+  geom_label_repel(data = subset(remodelings, lr >60), aes(label = cell_types_AFleft), color = 'black', segment.color = 'black', segment.size = 0.5, size = 4, force = T, nudge_x = 100, nudge_y = 100 )+
   scale_color_manual(values=mycolor) +
   xlab("Gene Counts of Signature_AF_left") +
   ylab("Gene Counts Signature_AF_right") + xlim(0,800) + ylim(0,800)+
@@ -397,7 +412,8 @@ p1 <- upset(fromList(listInput), order.by = "freq",nsets = 5)
 require(ggplotify)
 p2 <-  as.ggplot(p1)
 p3 <- p2+ggtitle('cross downregulated Signature_AF_left')
-ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFleft_down.pdf",sep=""), height = 4, width = 5)
+p3
+ggsave(p3,  filename = paste("./DE_analysis/AF_unique_genes/Cross_upset_AFleft_down.pdf",sep=""), height = 4, width = 5)
 
 ```
 # UPSET PLOT: Up
@@ -418,7 +434,8 @@ p1 <- upset(fromList(listInput), order.by = "freq",nsets = 5)
 require(ggplotify)
 p2 <-  as.ggplot(p1)
 p3 <- p2+ggtitle('cross upregulated Signature_AF_left')
-ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFleft_up.pdf",sep=""), height = 4, width = 5)
+p3
+ggsave(p3,  filename = paste("./DE_analysis/AF_unique_genes/Cross_upset_AFleft_up.pdf",sep=""), height = 4, width = 5)
 ```
 
 # AFright
@@ -442,7 +459,8 @@ p1 <- upset(fromList(listInput), order.by = "freq",nsets = 5)
 require(ggplotify)
 p2 <-  as.ggplot(p1)
 p3 <- p2+ggtitle('cross downregulated Signature_AF_right')
-ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFright_down.pdf",sep=""), height = 4, width = 5)
+p3
+ggsave(p3,  filename = paste("./DE_analysis/AF_unique_genes/Cross_upset_AFright_down.pdf",sep=""), height = 4, width = 5)
 ```
 # UPSET PLOT: Up
 listInput = list()
@@ -464,7 +482,8 @@ p1 <- upset(fromList(listInput), order.by = "freq",nsets = 5)
 require(ggplotify)
 p2 <-  as.ggplot(p1)
 p3 <- p2+ggtitle('cross upregulated Signature_AF_right')
-ggsave(p3,  filename = paste("./DE_analysis/Rpost_unique_genes/Cross_upset_AFright_up.pdf",sep=""), height = 4, width = 5)
+p3
+ggsave(p3,  filename = paste("./DE_analysis/AF_unique_genes/Cross_upset_AFright_up.pdf",sep=""), height = 4, width = 5)
 ```
 #####
 
@@ -510,7 +529,8 @@ p1 <- venn.diagram(
         #rotation = 1,
        # rotation.center = 30
 )
-pdf("./DE_analysis/Rpost_unique_genes/Venn_total_AF_2set.pdf",width = 2, height = 2)
+p1
+pdf("./DE_analysis/AF_unique_genes/Venn_total_AF_2set.pdf",width = 2, height = 2)
 grid.draw(p1)
 dev.off()
 #####
@@ -540,14 +560,483 @@ library(RColorBrewer)
 library(ArchR)
 library(MetBrewer)
 
-setwd("D:/Work/AF/Rdata/Deg/")
 
 haf <- readRDS("D:/Work/AF/Rdata/Total/haf_01.RDS")
 table(haf$group)
 unique(haf$group)
 
+seurat <- haf
+seurat$sample <- gsub("-", "", seurat$sample)
+seurat$sample <- gsub("_", "", seurat$sample)
+seurat$cell_type <- gsub("-", "", seurat$cell_type)
+seurat$cell_type <- gsub("_", "", seurat$cell_type)
+seurat$group <- gsub("-", "", seurat$group)
+seurat$group <- gsub("_", "", seurat$group)
+
+# Extract raw counts and metadata to create SingleCellExperiment object
+counts <- seurat@assays$RNA@counts 
+
+metadata <- seurat@meta.data
+
+# Set up metadata as desired for aggregation and DE analysis
+metadata$cluster_id <- factor(seurat$cell_type)
+#metadata$cluster_id <- factor(seurat$bulk) # all samples PCA
+metadata$sample_id <- factor(seurat$group)
+metadata$group_id <- factor(seurat$group)
+
+# Create single cell experiment object
+sce <- SingleCellExperiment(assays = list(counts = counts), 
+                           colData = metadata)
+
+# Identify groups for aggregation of counts
+groups <- colData(sce)[, c("cluster_id", "sample_id")]
+
+# Named vector of cluster names
+kids <- purrr::set_names(levels(sce$cluster_id))
+
+# Total number of clusters
+nk <- length(kids)
+
+# Named vector of sample names
+sids <- purrr::set_names(levels(sce$sample_id))
+
+# Total number of samples 
+ns <- length(sids)
+
+# Generate sample level metadata
+
+## Turn named vector into a numeric vector of number of cells per sample
+n_cells <- as.numeric(table(sce$sample_id))
+
+## Determine how to reoder the samples (rows) of the metadata to match the order of sample names in sids vector
+m <- match(sids, sce$sample_id)
+
+## Create the sample level metadata by combining the reordered metadata with the number of cells corresponding to each sample.
+ei <- data.frame(colData(sce)[m, ], 
+                  n_cells, row.names = NULL) %>% 
+                select(-"cluster_id")
+
+# Perform QC if not already performed
+dim(sce)
+
+## Remove lowly expressed genes which have less than 10 cells with any counts
+sce <- sce[rowSums(counts(sce) > 1) >= 10, ]
+
+dim(sce)
+
+# Aggregate the counts per sample_id and cluster_id
+
+# Subset metadata to only include the cluster and sample IDs to aggregate across
+groups <- colData(sce)[, c("cluster_id", "sample_id")]
+
+# Aggregate across cluster-sample groups
+pb <- aggregate.Matrix(t(counts(sce)), 
+                       groupings = groups, fun = "sum") 
+
+# Not every cluster is present in all samples; create a vector that represents how to split samples
+splitf <- sapply(stringr::str_split(rownames(pb), 
+                                    pattern = "_",  
+                                    n = 2), 
+                 `[`, 1)
+# Turn into a list and split the list into components for each cluster and transform, so rows are genes and columns are samples and make rownames as the sample IDs
+pb <- split.data.frame(pb, 
+                       factor(splitf)) %>%
+        lapply(function(u) 
+                set_colnames(t(u), 
+                             stringr::str_extract(rownames(u), "(?<=_)[:alnum:]+")))
+
+# Print out the table of cells in each cluster-sample group
+options(width = 100)
+table(sce$cluster_id, sce$sample_id)
+
+# Get sample names for each of the cell type clusters
+
+# prep. data.frame for plotting
+get_sample_ids <- function(x){
+        pb[[x]] %>%
+                colnames()
+}
+
+de_samples <- map(1:length(kids), get_sample_ids) %>%
+        unlist()
+
+# Get cluster IDs for each of the samples
+
+samples_list <- map(1:length(kids), get_sample_ids)
+
+get_cluster_ids <- function(x){
+        rep(names(pb)[x], 
+            each = length(samples_list[[x]]))
+}
+
+de_cluster_ids <- map(1:length(kids), get_cluster_ids) %>%
+        unlist()
+
+# Create a data frame with the sample IDs, cluster IDs and condition
+
+gg_df <- data.frame(cluster_id = de_cluster_ids,
+                    sample_id = de_samples)
+
+gg_df <- left_join(gg_df, ei[, c("sample_id", "group_id")]) 
 
 
+metadata <- gg_df %>%
+        dplyr::select(cluster_id, sample_id, group_id) 
+        
+metadata      
+
+unique(metadata$sample_id)
+unique(metadata$group_id)
+```
+
+# Generate vector of cluster IDs
+clusters <- unique(metadata$cluster_id)
+clusters
+```
+
+
+# Heatmap of top genes (UP)
+```{r}
+cell_types <- c("Adipocyte","Cardiomyocyte", "Endothelial", "Fibroblast", "Lymphoid", 'Mediate', "Mesothelial", "Myeloid", "Mural", "Neuron")
+
+# Cardiomyocyte
+cluster_num <- 2
+# Subset the metadata to only the desired cells
+cluster_metadata <- metadata[which(metadata$cluster_id == clusters[cluster_num]), ]
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+# Subset the counts to only the desired cells
+counts <- pb[[clusters[cluster_num]]]
+cluster_counts <- data.frame(counts[, which(colnames(counts) %in% rownames(cluster_metadata))])
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+all(rownames(cluster_metadata) == colnames(cluster_counts))   
+rld <- rlog(as.matrix(cluster_counts))
+#plot
+data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == "Cardiomyocyte")$gene
+data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == "Cardiomyocyte")$gene
+data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == "Cardiomyocyte")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_AFright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset, data_AFright_Ctrlright_AFright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Cardiomyocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Cardiomyocyte_up_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Cardiomyocyte_up <- pheatmap(t(x), scale = "column", main = 'Cardiomyocyte', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Cardiomyocyte_up
+# Heatmap of top genes (DOWN)
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == "Cardiomyocyte")$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == "Cardiomyocyte")$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == "Cardiomyocyte")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Cardiomyocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Cardiomyocyte_down_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Cardiomyocyte_down <- pheatmap(t(x), scale = "column", main = 'Cardiomyocyte', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Cardiomyocyte_down
+
+# Mesothelial
+cluster_num <- 7
+# Subset the metadata to only the desired cells
+cluster_metadata <- metadata[which(metadata$cluster_id == clusters[cluster_num]), ]
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+# Subset the counts to only the desired cells
+counts <- pb[[clusters[cluster_num]]]
+cluster_counts <- data.frame(counts[, which(colnames(counts) %in% rownames(cluster_metadata))])
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+all(rownames(cluster_metadata) == colnames(cluster_counts))   
+rld <- rlog(as.matrix(cluster_counts))
+#plot
+data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == "Mesothelial")$gene
+data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == "Mesothelial")$gene
+data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == "Mesothelial")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_AFright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset, data_AFright_Ctrlright_AFright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Mesothelial_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Mesothelial_up_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Mesothelial_up <- pheatmap(t(x), scale = "column", main = 'Mesothelial', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Mesothelial_up
+# Heatmap of top genes (DOWN)
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == "Mesothelial")$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == "Mesothelial")$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == "Mesothelial")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Mesothelial_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Mesothelial_down_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Mesothelial_down <- pheatmap(t(x), scale = "column", main = 'Mesothelial', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Mesothelial_down
+
+
+# Endothelial
+cluster_num <- 3
+# Subset the metadata to only the desired cells
+cluster_metadata <- metadata[which(metadata$cluster_id == clusters[cluster_num]), ]
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+# Subset the counts to only the desired cells
+counts <- pb[[clusters[cluster_num]]]
+cluster_counts <- data.frame(counts[, which(colnames(counts) %in% rownames(cluster_metadata))])
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+all(rownames(cluster_metadata) == colnames(cluster_counts))   
+rld <- rlog(as.matrix(cluster_counts))
+#plot
+data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == "Endothelial")$gene
+data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == "Endothelial")$gene
+data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == "Endothelial")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_AFright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset, data_AFright_Ctrlright_AFright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Endothelial_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Endothelial_up_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Endothelial_up <- pheatmap(t(x), scale = "column", main = 'Endothelial', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Endothelial_up
+# Heatmap of top genes (DOWN)
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == "Endothelial")$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == "Endothelial")$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == "Endothelial")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Endothelial_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Endothelial_down_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Endothelial_down <- pheatmap(t(x), scale = "column", main = 'Endothelial', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Endothelial_down
+
+
+# Adipocyte
+cluster_num <- 1
+# Subset the metadata to only the desired cells
+cluster_metadata <- metadata[which(metadata$cluster_id == clusters[cluster_num]), ]
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+# Subset the counts to only the desired cells
+counts <- pb[[clusters[cluster_num]]]
+cluster_counts <- data.frame(counts[, which(colnames(counts) %in% rownames(cluster_metadata))])
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+all(rownames(cluster_metadata) == colnames(cluster_counts))   
+rld <- rlog(as.matrix(cluster_counts))
+#plot
+data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == "Adipocyte")$gene
+data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == "Adipocyte")$gene
+data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == "Adipocyte")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_AFright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset, data_AFright_Ctrlright_AFright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Adipocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Adipocyte_up_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Adipocyte_up <- pheatmap(t(x), scale = "column", main = 'Adipocyte', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Adipocyte_up
+# Heatmap of top genes (DOWN)
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == "Adipocyte")$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == "Adipocyte")$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == "Adipocyte")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Adipocyte_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Adipocyte_down_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Adipocyte_down <- pheatmap(t(x), scale = "column", main = 'Adipocyte', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Adipocyte_down
+
+
+
+# Fibroblast
+cluster_num <- 4
+# Subset the metadata to only the desired cells
+cluster_metadata <- metadata[which(metadata$cluster_id == clusters[cluster_num]), ]
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+# Subset the counts to only the desired cells
+counts <- pb[[clusters[cluster_num]]]
+cluster_counts <- data.frame(counts[, which(colnames(counts) %in% rownames(cluster_metadata))])
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+all(rownames(cluster_metadata) == colnames(cluster_counts))   
+rld <- rlog(as.matrix(cluster_counts))
+#plot
+data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == "Fibroblast")$gene
+data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == "Fibroblast")$gene
+data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == "Fibroblast")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_AFright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset, data_AFright_Ctrlright_AFright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Fibroblast_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Fibroblast_up_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Fibroblast_up <- pheatmap(t(x), scale = "column", main = 'Fibroblast', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Fibroblast_up
+# Heatmap of top genes (DOWN)
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == "Fibroblast")$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == "Fibroblast")$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == "Fibroblast")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Fibroblast_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Fibroblast_down_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Fibroblast_down <- pheatmap(t(x), scale = "column", main = 'Fibroblast', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Fibroblast_down
+
+
+
+# Mural
+cluster_num <- 9
+# Subset the metadata to only the desired cells
+cluster_metadata <- metadata[which(metadata$cluster_id == clusters[cluster_num]), ]
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+# Subset the counts to only the desired cells
+counts <- pb[[clusters[cluster_num]]]
+cluster_counts <- data.frame(counts[, which(colnames(counts) %in% rownames(cluster_metadata))])
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+all(rownames(cluster_metadata) == colnames(cluster_counts))   
+rld <- rlog(as.matrix(cluster_counts))
+#plot
+data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == "Mural")$gene
+data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == "Mural")$gene
+data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == "Mural")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_AFright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset, data_AFright_Ctrlright_AFright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Mural_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Mural_up_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Mural_up <- pheatmap(t(x), scale = "column", main = 'Mural', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Mural_up
+# Heatmap of top genes (DOWN)
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == "Mural")$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == "Mural")$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == "Mural")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Mural_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Mural_down_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+Heat_Mural_down <- pheatmap(t(x), scale = "column", main = 'Mural', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = F, show_colnames = F, legend = F, fontsize = 20)
+Heat_Mural_down
+
+
+
+# Myeloid
+cluster_num <- 8
+# Subset the metadata to only the desired cells
+cluster_metadata <- metadata[which(metadata$cluster_id == clusters[cluster_num]), ]
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+# Subset the counts to only the desired cells
+counts <- pb[[clusters[cluster_num]]]
+cluster_counts <- data.frame(counts[, which(colnames(counts) %in% rownames(cluster_metadata))])
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+all(rownames(cluster_metadata) == colnames(cluster_counts))   
+rld <- rlog(as.matrix(cluster_counts))
+#plot
+data_AFleft_Ctrlleft_AFleft_subset <- filter(data_AFleft_Ctrlleft_AFleft, data_AFleft_Ctrlleft_AFleft$cell == "Myeloid")$gene
+data_AFright_Ctrlright_AFright_subset <- filter(data_AFright_Ctrlright_AFright, data_AFright_Ctrlright_AFright$cell == "Myeloid")$gene
+data_AFleft_AFright_AFleft_subset <- filter(data_AFleft_AFright_AFleft, data_AFleft_AFright_AFleft$cell == "Myeloid")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_AFleft_subset, data_AFleft_AFright_AFleft_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_AFright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_AFleft_subset, data_AFright_Ctrlright_AFright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Myeloid_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Myeloid_up_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+colnames(x) <- c('AF_left', 'AF_right', 'Ctrl_left', 'Ctrl_right')
+Heat_Myeloid_up <- pheatmap(t(x), scale = "column", main = 'Myeloid', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = T, show_colnames = F, legend = T, fontsize = 20)
+Heat_Myeloid_up
+# Heatmap of top genes (DOWN)
+    data_AFleft_Ctrlleft_Ctrlleft_subset <- filter(data_AFleft_Ctrlleft_Ctrlleft, data_AFleft_Ctrlleft_Ctrlleft$cell == "Myeloid")$gene
+    data_AFright_Ctrlright_Ctrlright_subset <- filter(data_AFright_Ctrlright_Ctrlright, data_AFright_Ctrlright_Ctrlright$cell == "Myeloid")$gene
+    data_AFleft_AFright_AFright_subset <- filter(data_AFleft_AFright_AFright, data_AFleft_AFright_AFright$cell == "Myeloid")$gene
+#s1 <- Reduce(intersect,list(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFleft_AFright_AFright_subset))
+#AFleft_genes <- setdiff(s1, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_genes <- setdiff(data_AFleft_Ctrlleft_Ctrlleft_subset, data_AFright_Ctrlright_Ctrlright_subset)
+AFleft_Ctrlleft <-read_delim("./DE_analysis/AFleft_Ctrlleft/Myeloid_AF_vs_Ctrl_all_genes.csv", ",", escape_double = FALSE, trim_ws = TRUE)
+AFleft_Ctrlleft <- filter(AFleft_Ctrlleft, AFleft_Ctrlleft$gene %in% AFleft_genes)
+AFleft_Ctrlleft <- AFleft_Ctrlleft[order(-AFleft_Ctrlleft$log2FoldChange),] 
+write.csv(AFleft_Ctrlleft, "./DE_analysis/AF_unique_genes/AFleft_Myeloid_down_genes.csv",
+          quote = FALSE, 
+          row.names = FALSE)
+x <- t(rld)[,AFleft_genes]
+x <- t(x)
+colnames(x) <- c('AF_left', 'AF_right', 'Ctrl_left', 'Ctrl_right')
+Heat_Myeloid_down <- pheatmap(t(x), scale = "column", main = 'Myeloid', border_color = NA, cluster_cols = FALSE, cluster_rows = F, show_rownames = T, show_colnames = F, legend = T, fontsize = 20)
+Heat_Myeloid_down
 
 
 
