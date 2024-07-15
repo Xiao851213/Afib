@@ -19,5 +19,324 @@ library(DESeq2)
 library(RColorBrewer)
 library(ArchR)
 library(MetBrewer)
+library(ggsci)
+library(ggrepel)
 
-setwd("E:/Work01/AF01/Rdata/Deg/")
+setwd("./Rdata/Deg/")
+
+mycolor1<-pal_npg("nrc", alpha = 1)(10)
+mycolor2<-pal_aaas("default", alpha = 1)(10)
+mycolor3<-pal_nejm("default", alpha = 1)(8)
+mycolor4<-pal_lancet("lanonc", alpha = 1)(9)
+mycolor5<-pal_jama("default", alpha = 1)(7)
+mycolor6<-pal_jco("default", alpha = 1)(10)
+mycolor <-c(mycolor3,mycolor1,mycolor2,mycolor4,mycolor5,mycolor6)
+
+options(Seurat.object.assay.version = "v3")
+set.seed(12345)
+haf <- readRDS("./Rdata/Total/haf_01.RDS")
+
+
+metadata <- haf@meta.data 
+metadata$group[which(str_detect(metadata$sample, "L_AF"))] <- "AF_left"
+metadata$group[which(str_detect(metadata$sample, "L_CTRL"))] <- "Ctrl_left"
+metadata$group[which(str_detect(metadata$sample, "R_AF"))] <- "AF_right"
+metadata$group[which(str_detect(metadata$sample, "R_CTRL"))] <- "Ctrl_right"
+haf@meta.data <- metadata
+
+haf$bulk <- "bulk"
+
+seurat <- haf
+seurat$sample <- gsub("-", "", seurat$sample)
+seurat$sample <- gsub("_", "", seurat$sample)
+seurat$cell_type <- gsub("-", "", seurat$cell_type)
+seurat$cell_type <- gsub("_", "", seurat$cell_type)
+#seurat$group <- gsub("-", "", seurat$group)
+#seurat$group <- gsub("_", "", seurat$group)
+
+# Extract raw counts and metadata to create SingleCellExperiment object
+counts <- seurat@assays$RNA@counts 
+
+metadata <- seurat@meta.data
+
+# Set up metadata as desired for aggregation and DE analysis
+metadata$cluster_id <- factor(seurat$cell_type)
+#metadata$cluster_id <- factor(seurat$bulk) # all samples PCA
+metadata$sample_id <- factor(seurat$sample)
+metadata$group_id <- factor(seurat$group)
+
+# Create single cell experiment object
+sce <- SingleCellExperiment(assays = list(counts = counts), 
+                           colData = metadata)
+
+# Identify groups for aggregation of counts
+groups <- colData(sce)[, c("cluster_id", "sample_id")]
+
+# Named vector of cluster names
+kids <- purrr::set_names(levels(sce$cluster_id))
+
+# Total number of clusters
+nk <- length(kids)
+
+# Named vector of sample names
+sids <- purrr::set_names(levels(sce$sample_id))
+
+# Total number of samples 
+ns <- length(sids)
+
+# Generate sample level metadata
+
+## Turn named vector into a numeric vector of number of cells per sample
+n_cells <- as.numeric(table(sce$sample_id))
+
+## Determine how to reoder the samples (rows) of the metadata to match the order of sample names in sids vector
+m <- match(sids, sce$sample_id)
+
+## Create the sample level metadata by combining the reordered metadata with the number of cells corresponding to each sample.
+ei <- data.frame(colData(sce)[m, ], 
+                  n_cells, row.names = NULL) %>% 
+                select(-"cluster_id")
+
+## Remove lowly expressed genes which have less than 10 cells with any counts
+sce <- sce[rowSums(counts(sce) > 1) >= 10, ]
+# Aggregate the counts per sample_id and cluster_id
+
+# Subset metadata to only include the cluster and sample IDs to aggregate across
+groups <- colData(sce)[, c("cluster_id", "sample_id")]
+
+# Aggregate across cluster-sample groups
+pb <- aggregate.Matrix(t(counts(sce)), 
+                       groupings = groups, fun = "sum") 
+
+# Not every cluster is present in all samples; create a vector that represents how to split samples
+splitf <- sapply(stringr::str_split(rownames(pb), 
+                                    pattern = "_",  
+                                    n = 2), 
+                 `[`, 1)
+
+# Turn into a list and split the list into components for each cluster and transform, so rows are genes and columns are samples and make rownames as the sample IDs
+pb <- split.data.frame(pb, 
+                       factor(splitf)) %>%
+        lapply(function(u) 
+                set_colnames(t(u), 
+                             stringr::str_extract(rownames(u), "(?<=_)[:alnum:]+")))
+
+# Get sample names for each of the cell type clusters
+
+# prep. data.frame for plotting
+get_sample_ids <- function(x){
+        pb[[x]] %>%
+                colnames()
+}
+
+de_samples <- map(1:length(kids), get_sample_ids) %>%
+        unlist()
+
+# Get cluster IDs for each of the samples
+
+samples_list <- map(1:length(kids), get_sample_ids)
+
+get_cluster_ids <- function(x){
+        rep(names(pb)[x], 
+            each = length(samples_list[[x]]))
+}
+
+de_cluster_ids <- map(1:length(kids), get_cluster_ids) %>%
+        unlist()
+
+# Create a data frame with the sample IDs, cluster IDs and condition
+
+gg_df <- data.frame(cluster_id = de_cluster_ids,
+                    sample_id = de_samples)
+
+gg_df <- left_join(gg_df, ei[, c("sample_id", "group_id")]) 
+
+
+metadata <- gg_df %>%
+        dplyr::select(cluster_id, sample_id, group_id) 
+        
+unique(metadata$sample_id)
+unique(metadata$group_id)
+```
+# Generate vector of cluster IDs
+clusters <- unique(metadata$cluster_id)
+clusters
+# Create PCA Plots
+for (i in 1:9) {
+
+cluster_number <- i
+
+# Subset the metadata to only the B cells
+cluster_metadata <- metadata[which(metadata$cluster_id == clusters[cluster_number]), ]
+#head(cluster_metadata)
+
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+#head(cluster_metadata)
+
+# Subset the counts to only cluster of interest
+counts <- pb[[clusters[cluster_number]]]
+
+cluster_counts <- data.frame(counts[, which(colnames(counts) %in% rownames(cluster_metadata))])
+
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+all(rownames(cluster_metadata) == colnames(cluster_counts))        
+
+dds <- DESeqDataSetFromMatrix(cluster_counts, 
+                              colData = cluster_metadata, 
+                              design = ~ group_id)
+
+# Transform counts for data visualization
+rld <- rlog(dds, blind=TRUE)
+
+table(rld$group_id)
+
+rld$group_id <- factor(rld$group_id, levels =c("AF_left","Ctrl_left","AF_right","Ctrl_right"))
+pcaData <- plotPCA(rld, intgroup=c("group_id"), returnData=TRUE)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+p3 <- ggplot(pcaData, aes(PC1, PC2, color=group_id)) +
+  geom_point(size=1.5) +
+  theme_bw() + geom_text_repel(aes(label = pcaData$name),
+                    size = 2) +
+  scale_color_manual(values=as.vector(paletteDiscrete(unique(rld$group_id), set = "stallion"))) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) +
+ggtitle(clusters[cluster_number])
+ggsave(p3,  filename = paste("./PCA_", clusters[cluster_number],"_3",".pdf",sep=""), height = 4, width = 5)
+}
+```
+
+
+# Functionalize DDS
+get_dds_results <- function(cluster_number, metadata_subset, fname){
+
+cluster_metadata <- metadata_subset[which(metadata_subset$cluster_id == clusters[cluster_number]), ]
+#head(cluster_metadata)
+
+# Assign the rownames of the metadata to be the sample IDs
+rownames(cluster_metadata) <- cluster_metadata$sample_id
+#head(cluster_metadata)
+
+# Subset the counts to only cluster of interest
+counts_matrix <- pb[[clusters[cluster_number]]]
+
+cluster_counts <- data.frame(counts_matrix[, which(colnames(counts_matrix) %in% rownames(cluster_metadata))])
+
+# Check that all of the row names of the metadata are the same and in the same order as the column names of the counts in order to use as input to DESeq2
+#all(rownames(cluster_metadata) == colnames(cluster_counts))        
+
+dds <- DESeqDataSetFromMatrix(cluster_counts, 
+                              colData = cluster_metadata, 
+                              design = ~ HAF)
+
+# Transform counts for data visualization
+rld <- rlog(dds, blind=TRUE)
+
+# Extract the rlog matrix from the object and compute pairwise correlation values
+rld_mat <- assay(rld)
+rld_cor <- cor(rld_mat)
+
+# Run DESeq2 differential expression analysis
+dds <- DESeq(dds)
+
+pdf(paste0("DE_analysis/", fname, "/", clusters[cluster_number], "_dispersion_plot.pdf"))
+plotDispEsts(dds)
+dev.off()
+
+# Output results of Wald test for contrast for stim vs ctrl
+unique(cluster_metadata$HAF)[2]
+unique(cluster_metadata$HAF)[1]
+
+contrast <- c("HAF", unique(cluster_metadata$HAF)[1], unique(cluster_metadata$HAF)[2])
+
+# resultsNames(dds)
+res <- results(dds, 
+               contrast = contrast,
+               alpha = 0.05)
+
+res <- lfcShrink(dds, 
+                 contrast =  contrast,
+                 res=res,
+                 type="ashr")
+
+# Turn the results object into a tibble for use with tidyverse functions
+res_tbl <- res %>%
+        data.frame() %>%
+        rownames_to_column(var="gene") %>%
+        as_tibble()
+
+write.csv(res_tbl,
+          paste0("DE_analysis/", fname, "/", clusters[cluster_number], "_", unique(cluster_metadata$HAF)[1], "_vs_", unique(cluster_metadata$HAF)[2], "_all_genes.csv"),
+          quote = FALSE, 
+          row.names = FALSE)
+
+# Set thresholds
+padj_cutoff <- 0.05
+
+# Subset the significant results
+sig_res <- dplyr::filter(res_tbl, padj < padj_cutoff) %>%
+        dplyr::arrange(padj)
+
+# Write significant results to file
+write.csv(sig_res,
+          paste0("DE_analysis/", fname, "/", clusters[cluster_number], "_", unique(cluster_metadata$HAF)[1], "_vs_", unique(cluster_metadata$HAF)[2], "_sig_genes.csv"),
+          quote = FALSE, 
+          row.names = FALSE)
+        
+}
+```
+
+dir.create("DE_analysis")
+dir.create("DE_analysis/AF_Ctrl/")
+dir.create("DE_analysis/AFleft_AFright/")
+dir.create("DE_analysis/AFleft_Ctrlleft/")
+dir.create("DE_analysis/AFright_Ctrlright/")
+dir.create("DE_analysis/Ctrlleft_Ctrlright/")
+dir.create("DE_analysis/left_right/")
+dir.create("DE_analysis/AF_unique_genes/")
+
+
+# AF vs Ctrl
+metadata$HAF <-  NA
+metadata$HAF[which(str_detect(metadata$group_id, "^Ctrl_"))] <- "Ctrl"
+metadata$HAF[which(str_detect(metadata$group_id, "^AF_"))] <- "AF"
+# Run the script on all clusters comparing stim condition relative to control condition
+map(1:length(clusters), get_dds_results, metadata_subset = metadata, fname = "AF_Ctrl")
+
+# left vs right
+metadata$HAF <-  NA
+metadata$HAF[which(str_detect(metadata$group_id, "left"))] <- "left"
+metadata$HAF[which(str_detect(metadata$group_id, "right"))] <- "right"
+map(1:length(clusters), get_dds_results, metadata_subset = metadata, fname = "left_right")
+
+# AF_left vs Ctrl_left
+metadata$HAF <-  NA
+metadata_subset <- subset(metadata, metadata$group_id %in% c("AF_left","Ctrl_left"))
+metadata_subset$HAF[which(str_detect(metadata_subset$group_id, "^Ctrl_"))] <- "Ctrl"
+metadata_subset$HAF[which(str_detect(metadata_subset$group_id, "^AF_"))] <- "AF"
+map(1:length(clusters), get_dds_results, metadata_subset = metadata_subset, fname = "AFleft_Ctrlleft")
+
+# AF_right vs Ctrl_right
+metadata$HAF <-  NA
+metadata_subset <- subset(metadata, metadata$group_id %in% c("AF_right","Ctrl_right"))
+metadata_subset$HAF[which(str_detect(metadata_subset$group_id, "^Ctrl_"))] <- "Ctrl"
+metadata_subset$HAF[which(str_detect(metadata_subset$group_id, "^AF_"))] <- "AF"
+map(1:length(clusters), get_dds_results, metadata_subset = metadata_subset, fname = "AFright_Ctrlright")
+
+# AF_left vs AF_right
+metadata$HAF <-  NA
+metadata_subset <- subset(metadata, metadata$group_id %in% c("AF_left","AF_right"))
+metadata_subset$HAF[which(str_detect(metadata_subset$group_id, "left"))] <- "left"
+metadata_subset$HAF[which(str_detect(metadata_subset$group_id, "right"))] <- "right"
+map(1:length(clusters), get_dds_results, metadata_subset = metadata_subset, fname = "AFleft_AFright")
+
+# Ctrl_left vs Ctrl_right
+metadata_subset <- subset(metadata, metadata$group_id %in% c("Ctrl_left","Ctrl_right"))
+metadata_subset$HAF[which(str_detect(metadata_subset$group_id, "left"))] <- "left"
+metadata_subset$HAF[which(str_detect(metadata_subset$group_id, "right"))] <- "right"
+map(1:length(clusters), get_dds_results, metadata_subset = metadata_subset, fname = "Ctrlleft_Ctrlright")
+
+```
+
+
+
