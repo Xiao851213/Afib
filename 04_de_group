@@ -1,4 +1,5 @@
-setwd("E:/Work01/AF01/Rdata/Deg/")
+
+setwd("D:/Work/AF/Rdata/Deg/")
 library(Seurat)
 library(ggplot2)
 library(patchwork)
@@ -71,7 +72,6 @@ Neuron <- read_delim("./DE_analysis/AFleft_AFright/Neuron_left_vs_right_all_gene
 Neuron$cell <- "Neuron"
 Neuron$sigpvalue <- ifelse(Neuron$padj < 0.05, "p < 0.05","p > 0.05")
 Neuron$sig <- ifelse(Neuron$padj < 0.05 & abs(Neuron$log2FoldChange) > 0, "Significant","Not Significant")
-
 
 #create data frame
 data <- data.frame(rbind(Adipocyte, Cardiomyocyte, Endothelial, Fibroblast, Lymphoid, Mesothelial, Myeloid, Mural, Neuron))
