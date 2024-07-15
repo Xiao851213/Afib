@@ -659,6 +659,8 @@ signature_AF_left_up_Cardiomyocyte <- read.table('./signature_AF_left_up_Cardiom
 signature_AF_left_down_Cardiomyocyte <- read.table('./signature_AF_left_down_Cardiomyocyte.txt')
 signature_AF_right_up_Cardiomyocyte <- read.table('./signature_AF_right_up_Cardiomyocyte.txt')
 signature_AF_right_down_Cardiomyocyte <- read.table('./signature_AF_right_down_Cardiomyocyte.txt')
+unique_AF_up_Cardiomyocyte <- read.table('./unique_AF_up_Cardiomyocyte.txt')
+unique_AF_down_Cardiomyocyte <- read.table('./unique_AF_down_Cardiomyocyte.txt')
 
 Pop1 <- signature_AF_left_up_Cardiomyocyte$V1
 pops<-list(Pop1)
@@ -736,7 +738,7 @@ ggsave(p1,file="Z_haf_Cardiomyocyte_signature_AF_right_down.pdf",width = 5, heig
 
  
 
-Pop1 <- desired_genes
+Pop1 <- unique_AF_up_Cardiomyocyte$V1
 pops<-list(Pop1)
 #Z-Scores
 z_scores<-NULL
@@ -749,53 +751,104 @@ geneExp <- t(scale(t(geneExp)))
 geneExp[is.nan(geneExp)] <- 0
 z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
 }
-
-sample@meta.data$unique_AF_left_up_z<-z_scores[1,]
-p1 <- FeaturePlot(object=sample, features = "unique_AF_left_up_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
-p1
-ggsave(p1,file="Z_haf_Cardiomyocyte_unique_AF_left_up.pdf",width = 5, height = 4)
-
-sample@meta.data$unique_AF_left_down_z<-z_scores[1,]
-p1 <- FeaturePlot(object=sample, features = "unique_AF_left_down_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
-p1
-ggsave(p1,file="Z_haf_Cardiomyocyte_unique_AF_left_down.pdf",width = 5, height = 4)
- 
 sample@meta.data$unique_AF_up_z<-z_scores[1,]
 p1 <- FeaturePlot(object=sample, features = "unique_AF_up_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
 p1
 ggsave(p1,file="Z_haf_Cardiomyocyte_unique_AF_up.pdf",width = 5, height = 4)
 
-Signature_AF_right_up  <-   c("NPPB", "MTRNR2L12", "TTTY14"   )
-Signature_AF_right_down  <-   c("LINC01060",  "SCGN", "AC025366.1")
-#Signature_AF_up <- c("LINC01479", "IFNG-AS1" )
-#unique <- c("MTRNR2L12", "LINC01479", "IFNG-AS1",  "ESRRB" )
-p1 <- DotPlot(object=haf_Cardiomyocyte, features = Signature_AF_right_up, group.by = 'cell_state')  + ggtitle('Signature_AF_right_up')  + RotatedAxis() #+ggplot2:::coord_flip()  
+Pop1 <- unique_AF_down_Cardiomyocyte$V1
+pops<-list(Pop1)
+#Z-Scores
+z_scores<-NULL
+for (i in 1:length(pops)) {
+genes <- pops[[i]]
+zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+av <- numeric(ncol(expdata))
+geneExp <- as.matrix(expdata[zz, ])
+geneExp <- t(scale(t(geneExp)))
+geneExp[is.nan(geneExp)] <- 0
+z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+}
+sample@meta.data$unique_AF_down_z<-z_scores[1,]
+p1 <- FeaturePlot(object=sample, features = "unique_AF_down_z",reduction = 'umap', order = TRUE, raster =FALSE) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+p1
+ggsave(p1,file="Z_haf_Cardiomyocyte_unique_AF_down.pdf",width = 5, height = 4)
+ 
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = Signature_AF_right_up_Cardiomyocyte$V1, group.by = 'cell_state')  + ggtitle('Signature_AF_right_up')  + RotatedAxis() #+ggplot2:::coord_flip()  
 p1
 ggsave(plot=p1, filename="haf_CM_dot_Signature_AF_right_up.pdf",width = 4, height = 4)
-p1 <- DotPlot(object=haf_Cardiomyocyte, features = Signature_AF_right_down, group.by = 'cell_state')  + ggtitle('Signature_AF_right_down')  + RotatedAxis() #+ggplot2:::coord_flip()  
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = Signature_AF_right_down_Cardiomyocyte$V1, group.by = 'cell_state')  + ggtitle('Signature_AF_right_down')  + RotatedAxis() #+ggplot2:::coord_flip()  
 p1
-ggsave(plot=p1, filename="haf_CM_dot_Signature_AF_right_down.pdf",width = 4, height = 4)
-p1 <- DotPlot(object=haf_Cardiomyocyte, features = Signature_AF_up, group.by = 'cell_state')  + RotatedAxis()  + ggtitle('Unique_AF_up')  #+ggplot2:::coord_flip() 
+ggsave(plot=p1, filename="haf_CM_dot_Signature_AF_right_down.pdf",width = 4, height = 4) 
+ 
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = unique_AF_up_Cardiomyocyte$V1, group.by = 'cell_state')  + ggtitle('Unique_AF_left_up')  + RotatedAxis() #+ggplot2:::coord_flip()  
 p1
-ggsave(plot=p1, filename="haf_CM_dot_Signature_AF_up.pdf",width = 3.5, height = 4)
-p1 <- DotPlot(object=haf_Cardiomyocyte, features = 'MYH7', group.by = 'cell_state')  #+ ggtitle('Signature_AF_right_up')  #+ RotatedAxis() +ggplot2:::coord_flip()  
-p1
-ggsave(plot=p1, filename="haf_CM_dot_MYH7.pdf",width = 3.5, height = 4)
+ggsave(plot=p1, filename="haf_CM_dot_unique_AF_left_up.pdf",width = 4, height = 4) 
+ 
 
-i <- "Cardiomyocyte"
-#unique_AF_left_up  <-   c("LINC02232",  "AC008571.2", "GABRA6" )# blank
-unique_AF_left_down  <-   c("AL445426.1", "SLCO4A1"  )
-p1 <- DotPlot(object=haf_Cardiomyocyte, features = unique_AF_left_up, group.by = 'cell_state')  + ggtitle('Unique_AF_left_up')  + RotatedAxis() #+ggplot2:::coord_flip()  
-p1
-ggsave(plot=p1, filename="haf_CM_dot_unique_AF_left_up.pdf",width = 4, height = 4)
-p1 <- DotPlot(object=haf_Cardiomyocyte, features = unique_AF_left_down, group.by = 'cell_state')  + ggtitle('Unique_AF_left_down')  + RotatedAxis() #+ggplot2:::coord_flip()  
-p1
-ggsave(plot=p1, filename="haf_CM_dot_unique_AF_left_down.pdf",width = 3.5, height = 4)
+#Differential module eigengene (DME) analysis
+# single-cell analysis package
+library(Seurat)
+# plotting and data science packages
+library(tidyverse)
+library(cowplot)
+library(patchwork)
+library(ggrepel)
+# co-expression network analysis packages:
+library(WGCNA)
+library(hdWGCNA)
+# using the cowplot theme for ggplot
+theme_set(theme_cowplot())
+# set random seed for reproducibility
+set.seed(12345)
+# re-load the hdWGCNA object produced by wgcna
+seurat_obj <- readRDS("./hAF_CM_hdWGCNA_object.RDS")
 
-unique_AF_right_down  <-   "LINC01060"
-p1 <- DotPlot(object=haf_Cardiomyocyte, features = unique_AF_right_down, group.by = 'cell_state')  + ggtitle('Unique_AF_right_down')  + RotatedAxis() #+ggplot2:::coord_flip()  
+hub_df <- GetHubGenes(seurat_obj, n_hubs = 3)
+hub.gene <- hub_df$gene_name
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = hub.gene, group.by = 'cell_state')  + RotatedAxis()  + ggtitle('Top 3 hub genes in hAF Cardiomyocyte')  #+ggplot2:::coord_flip() 
 p1
-ggsave(plot=p1, filename="haf_CM_dot_unique_AF_right_down.pdf",width = 3.5, height = 4)
+ggsave(plot=p1, filename="haf_CM_hdwgcna_hubgene_dot_TOP3.pdf",width = 10, height = 4)
+Idents(haf_Cardiomyocyte) <- seurat_obj$group
+my_levels <- c('AF_left', 'Ctrl_left', 'AF_right', 'Ctrl_right')
+Idents(haf_Cardiomyocyte) <- factor(Idents(haf_Cardiomyocyte), levels = my_levels)
+p1 <- DotPlot(object=haf_Cardiomyocyte, features = hub.gene)  + RotatedAxis()  + ggtitle('Top 3 hub genes in hAF Cardiomyocyte')  #+ggplot2:::coord_flip() 
+p1
+ggsave(plot=p1, filename="haf_CM_hdwgcna_hubgene_dot_TOP3_group.pdf",width = 10, height = 3)
+
+group1 <- seurat_obj@meta.data %>% subset(cell_state == 'CM02' & group == 'AF_right') %>% rownames
+group2 <- seurat_obj@meta.data %>% subset(cell_state == 'CM02' & group == 'Ctrl_right') %>% rownames
+DMEs <- FindDMEs(
+  seurat_obj,
+  barcodes1 = group1,
+  barcodes2 = group2,
+  test.use='wilcox',
+  wgcna_name='hAF_CM'
+) 
+p <- PlotDMEsVolcano(
+  seurat_obj,
+  DMEs,
+  wgcna_name = 'hAF_CM'
+)
+p1 <- p + ggtitle('DEM in AF_right CM02')
+ggsave(p1,file="haf_CM_hdwgcna_DME_AF_right_CM02_voc.pdf",width = 5, height = 4)
+
+group1 <- seurat_obj@meta.data %>% subset(cell_state == 'CM02' & group == 'AF_left') %>% rownames
+group2 <- seurat_obj@meta.data %>% subset(cell_state == 'CM02' & group == 'Ctrl_left') %>% rownames
+DMEs <- FindDMEs(
+  seurat_obj,
+  barcodes1 = group1,
+  barcodes2 = group2,
+  test.use='wilcox',
+  wgcna_name='hAF_CM'
+) 
+p <- PlotDMEsVolcano(
+  seurat_obj,
+  DMEs,
+  wgcna_name = 'hAF_CM'
+)
+p1 <- p + ggtitle('DEM in AF_left CM02')
+ggsave(p1,file="haf_CM_hdwgcna_DME_AF_left_CM02_voc.pdf",width = 5, height = 4)
 
 
 
@@ -813,10 +866,10 @@ plotCytoTRACE(results, phenotype = t)
 plotCytoGenes(results, numOfGenes = 10)
 
 
-#monocle
+#pseudotime trajectory
 library(monocle)
 Idents(haf_Cardiomyocyte) <- 'cell_state'
-my_levels <- c(  'CM01', 'CM02', 'CM03', 'CM04', "CM05", "CM06", "CM07", "CM08")
+my_levels <- c('CM01', 'CM02', 'CM03', 'CM04', "CM05", "CM06", "CM07", "CM08")
 Idents(haf_Cardiomyocyte) <- factor(Idents(haf_Cardiomyocyte), levels = my_levels)
 expr_matrix <-as(as.matrix(haf_Cardiomyocyte@assays$RNA@counts), 'sparseMatrix')
 p_data <- haf_Cardiomyocyte@meta.data
@@ -845,7 +898,7 @@ plot_cell_trajectory(cds, color_by = 'State', cell_size = 1.5, show_backbone = T
 plot_cell_trajectory(cds, color_by = 'cell_state', cell_size = 1.5, state_number_size = 8, show_backbone = TRUE)+ scale_color_manual(values = mycolor) 
 cds <- orderCells(cds, root_state = 4) 
 saveRDS(cds, file='haf_Cardiomyocyte_cds_m2.rds')
-#cds <- readRDS("E:/Work01/AF01/Rdata/Cardiomyocyte/haf_Cardiomyocyte_cds_m2.RDS")
+#cds <- readRDS("./haf_Cardiomyocyte_cds_m2.RDS")
 p1 <- plot_cell_trajectory(cds, color_by = 'Pseudotime', cell_size = 1.5, state_number_size = 4, show_backbone = TRUE)
 ggsave(p1, file='haf_Cardiomyocyte.pseudotime.pdf', width = 5, height = 4)
 p1 <- plot_cell_trajectory(cds, color_by = 'cell_state', cell_size = 1.5, state_number_size = 8, show_backbone = TRUE)+ scale_color_manual(values = mycolor) 
@@ -865,6 +918,66 @@ p2 <- p1+ scale_color_lancet()
 ggsave('haf_Cardiomyocyte_cell_trajectory_cell.pdf', plot = p2, width = 7.5, height = 3)
 
 
+pdata <- Biobase::pData(cds)
+s.cell.1 <- subset(pdata, State=='1') %>% rownames()
+save(s.cell.1, file= 'state1.rda')
+write.csv(pData(cds), 'pseudotime_state1.csv')
+s.cell.2 <- subset(pdata, State=='2') %>% rownames()
+save(s.cell.2, file= 'state2.rda')
+write.csv(pData(cds), 'pseudotime_state2.csv')
+s.cell.3 <- subset(pdata, State=='3') %>% rownames()
+save(s.cell.3, file= 'state3.rda')
+write.csv(pData(cds), 'pseudotime_state3.csv')
+s.cell.4 <- subset(pdata, State=='4') %>% rownames()
+save(s.cell.4, file= 'state4.rda')
+write.csv(pData(cds), 'pseudotime_state4.csv')
+s.cell.5 <- subset(pdata, State=='5') %>% rownames()
+save(s.cell.5, file= 'state5.rda')
+write.csv(pData(cds), 'pseudotime_state5.csv')
 
+state1 <- subset(haf_Cardiomyocyte, cells = s.cell.1)
+state2 <- subset(haf_Cardiomyocyte, cells= s.cell.2)
+state3 <- subset(haf_Cardiomyocyte, cells= s.cell.3)
+state4 <- subset(haf_Cardiomyocyte, cells= s.cell.4)
+state5 <- subset(haf_Cardiomyocyte, cells= s.cell.5)
 
+#pie plot showing proportion of each group in particular pseudotime state 
+p1 <- table(State1@meta.data$group)
+p1 <- as.data.frame(p1)
+p1 <- p1[which(p1$Freq>0),]
+p1$prop <- 100*p1$Freq/sum(p1$Freq)
+p1$prop <- round(p1$prop, 2)
+colnames(p1) <- c("Group", "Count","Percentage") 
+p <- ggplot(p1, aes(x= '', y = Percentage, fill = Group)) +
+        geom_bar(stat = 'identity', color = 'white') +
+        scale_fill_manual(values = c('#FFA533', '#2BCF76', '#4874EC', '#A372E6')) +
+        coord_polar(theta = 'y') +
+        theme(axis.text.x = element_blank(),
+                   axis.title = element_blank(), 
+                   axis.ticks = element_blank(),
+                   panel.grid = element_blank(),
+                   panel.background = element_blank(),
+                   legend.position = "none" )  
+ggsave('Pseudotime_state1_group.pdf', plot = p, width = 5, height = 4)
+
+#pseudotime branch analysis
+BEAM_res <- BEAM(cds[ordergene,], branch_point = 1, progenitor_method = 'duplicate')
+BEAM_res <- BEAM_res[order(BEAM_res$qval),]
+BEAM_res <- BEAM_res[, c('gene_short_name', 'pval', 'qval')]
+head(BEAM_res)
+write.csv(BEAM_res, 'sce_BEAM_res_branch2.csv', row.names =F)
+
+BEAM_genes <- top_n(BEAM_res, n = 50, desc(qval)) %>% pull(gene_short_name)
+p <- plot_genes_branched_heatmap(cds[BEAM_genes,], 
+                                                       branch_point = 1,
+                                                       num_clusters=3, 
+                                                       show_rownames=T, return_heatmap=T)
+ggsave("sce_BEAM_heatmap_top50.pdf", p$ph_res, width = 6.5, height = 6)
+
+BEAM_genes <- top_n(BEAM_res, n = 10, desc(qval)) %>% pull(gene_short_name) 
+p <- plot_genes_branched_pseudotime(cds[BEAM_genes,],
+ branch_point = 1,
+ color_by = "State",
+ ncol = 5)+ scale_color_manual(values = mycolor2) +ggtitle('Top 10 pseudotime branch point 2 significant dependent genes')
+ggsave("sce_BEAM_top10.pdf",   width = 12.5, height = 4)
 
