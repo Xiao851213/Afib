@@ -41,22 +41,6 @@ library(MetBrewer)
 rm(list=ls())
 font_import(pattern = "Arial")
 
-mycolor1<-pal_npg("nrc", alpha = 1)(10)
-mycolor2<-pal_aaas("default", alpha = 1)(10)
-mycolor3<-pal_nejm("default", alpha = 1)(8)
-mycolor4<-pal_lancet("lanonc", alpha = 1)(9)
-mycolor5<-pal_jama("default", alpha = 1)(7)
-mycolor6<-pal_jco("default", alpha = 1)(10)
-new_colors1 <- paste0(met.brewer("Monet"))
-new_colors2 <- paste0(met.brewer("Egypt"))
-new_colors3 <- paste0(met.brewer("Austria"))
-new_colors4 <- paste0(met.brewer("Redon", n=10))
-new_colors5 <- paste0(met.brewer("Java"))
-new_colors6 <- paste0(met.brewer("Renoir"))
-mycolor <-c(mycolor3, new_colors2, new_colors1, mycolor1,new_colors4, new_colors6, new_colors5, new_colors3, mycolor2,mycolor4,mycolor5,mycolor6 )
-mycolor <-unique(mycolor)
-mycolor <- mycolor[c( -3)]
-mycolor <- mycolor[c( -9, -10)]
 options(Seurat.object.assay.version = "v5")
 set.seed(12345)
 
