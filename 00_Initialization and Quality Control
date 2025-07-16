@@ -62,6 +62,21 @@ colnames(data@meta.data)[ncol(data@meta.data)] = "doublet_info"
 return(data)
 }
 
+clean_scale_data <- function(seu_obj, pattern = "scale\\.data", verbose = TRUE) {
+  layers_to_remove <- grep(pattern, Layers(seu_obj), value = TRUE)
+  for (layer in layers_to_remove) {
+    eval(parse(text = sprintf("seu_obj[['RNA']]$'%s' <- NULL", layer)))
+  }
+  if (verbose) {
+    if (length(layers_to_remove) > 0) {
+      message("Removed layers:")
+      print(layers_to_remove)
+    } else {
+      message("No matching layers found.")
+    }
+  }
+  return(seu_obj)
+}
 
 samples <- dir(path="./Count/")
 count.list <- list()
@@ -338,25 +353,10 @@ obj <- sce_harmony
 # now that integration is complete, rejoin layers
 obj <- JoinLayers(obj) 
 obj
-obj[["RNA"]]$'scale.data.P02_LA_AF.1' <- NULL
-obj[["RNA"]]$'scale.data.P03_LA_AF.2' <- NULL
-obj[["RNA"]]$'scale.data.P04_LA_AF.3' <- NULL
-obj[["RNA"]]$'scale.data.P04_RA_AF.4' <- NULL
-obj[["RNA"]]$'scale.data.P05_RA_AF.5' <- NULL
-obj[["RNA"]]$'scale.data.P06_LA_AF.6' <- NULL
-obj[["RNA"]]$'scale.data.P07_LA_AF.7' <- NULL
-obj[["RNA"]]$'scale.data.P09_LA_CTRL.8' <- NULL
-obj[["RNA"]]$'scale.data.P10_LA_CTRL.9' <- NULL
-obj[["RNA"]]$'scale.data.P10_RA_CTRL.10' <- NULL
-obj[["RNA"]]$'scale.data.P11_LA_CTRL.11' <- NULL
-obj[["RNA"]]$'scale.data.P13_RA_AF.12' <- NULL
-obj[["RNA"]]$'scale.data.P15_RA_CTRL.13' <- NULL
-obj[["RNA"]]$'scale.data.P16_RA_CTRL.14' <- NULL
-obj[["RNA"]]$'scale.data.P17_RA_CTRL.15' <- NULL
+obj <- clean_scale_data(obj)
 obj
 paste("obj assay size:", format(object.size(obj[["RNA"]]), units = "Gb"))
 sce_harmony <- obj 
 
- 
 saveRDS(sce_harmony, file = "./data_r/sce_harmony.RDS")
 
