@@ -240,8 +240,6 @@ ggsave(p1,file="hAF_CM_hdwgcna_gomf.pdf",width = 6.5, height = 4)
 #Marker gene overlap analysis for cell subpopulation
 # compute cell-type marker genes with Seurat:
 Idents(seurat_obj) <- seurat_obj@meta.data$cell_state
-my_levels <- c( 'CM01', 'CM02', 'CM03', 'CM04', "CM05", "CM06", "CM07", "CM08", "CM09")
-Idents(seurat_obj) <- factor(Idents(seurat_obj), levels = my_levels)
 
 markers <- Seurat::FindAllMarkers(
   seurat_obj,
@@ -273,8 +271,6 @@ ggsave(p1,file="hAF_CM_hdwgcna_overlap_dot.pdf",width = 7.5, height = 3)
 #Marker gene overlap analysis for groups
 # compute cell-type marker genes with Seurat:
 Idents(seurat_obj) <- seurat_obj$group
-my_levels <- c('AF_left', 'Ctrl_left', 'AF_right', 'Ctrl_right')
-Idents(seurat_obj) <- factor(Idents(seurat_obj), levels = my_levels)
 markers <- Seurat::FindAllMarkers(
   seurat_obj,
   only.pos = TRUE,
