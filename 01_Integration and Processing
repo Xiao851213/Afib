@@ -418,9 +418,6 @@ pC
 #save plot
 ggsave(pC,file="./data_r/Annotation_limit/sce_Propotion_Sample_subtype.pdf",width = 15, height = 8)
 
-
-
-
 plotC <- table(sce@meta.data$sample, sce@meta.data$cell_type) %>% melt()
 colnames(plotC) <- c("Sample", "Cell_Type","Number")
 plotC$Sample <- factor(plotC$Sample, 
@@ -570,6 +567,274 @@ saveRDS(obj, file = "./data_r/Annotation_limit/sce_annotation.RDS")
 #sce <- readRDS("./data_r/Annotation_limit/sce_annotation.RDS")
 
 
+
+obj <- sce
+#Volcanol plot
+Idents(obj) <- obj@meta.data$group
+p1 <- table(sce@meta.data$cell_type)
+p1 <- as.data.frame(p1)
+p1 <- p1[which(p1$Freq>0),]
+p1$prop <- 100*p1$Freq/sum(p1$Freq)
+p1$prop <- round(p1$prop, 2)
+p1 <- p1[order(p1$prop, decreasing = T),]
+cluster <- p1$Var1
+AFleft.deg <- data.frame(matrix(ncol = 6, nrow = 0))
+AFright.deg <- data.frame(matrix(ncol = 6, nrow = 0))
+for (i in seq_along(cluster)) {     
+     current_data <- cluster[i]
+left.markers <- FindMarkers(subset(obj, subset = cell_type == current_data), ident.1 = "AF_LA", ident.2 = "Ctrl_LA", assay = 'RNA', 
+                        group.by = 'group', logfc.threshold = 0.25, min.pct = 0, pseudocount.use = 0.01)
+left.markers$cell_type <- current_data
+AFleft.deg <- rbind(AFleft.deg, left.markers)
+right.markers <- FindMarkers(subset(obj, subset = cell_type == current_data), ident.1 = "AF_RA", ident.2 = "Ctrl_RA", assay = 'RNA', 
+                        group.by = 'group', logfc.threshold = 0.25, min.pct = 0, pseudocount.use = 0.01)
+right.markers$cell_type <- current_data
+AFright.deg <- rbind(AFright.deg, right.markers)
+#assign(paste(current_data,'left.markers', sep=''), left.markers)
+#assign(paste(current_data,'right.markers', sep=''), right.markers)
+}
+table(AFleft.deg$cell_type)
+table(AFright.deg$cell_type)
+write.csv(AFleft.deg, "./data_r/Processing/obj_AFleft.deg.csv")
+write.csv(AFright.deg, "./data_r/Processing/obj_AFright.deg.csv")
+
+object.markers <- AFleft.deg
+object.markers$names <- rownames(object.markers)
+object.markers <- object.markers %>%
+   mutate(Difference = pct.1 - pct.2)
+object.markers$group=0
+for (i in 1:nrow(object.markers)){
+object.markers$log10q[i] <- -log(object.markers$p_val_adj[i], 10)
+    if (object.markers$avg_log2FC[i] >= 1 & object.markers$Difference[i] >= 0.2 & object.markers$pct.2[i] <= 0.1){
+      object.markers$group[i] = 'up'
+    }
+    else if (object.markers$avg_log2FC[i] <= -1 & object.markers$Difference[i] <= -0.2 & object.markers$pct.1[i] <= 0.1){
+      object.markers$group[i] = 'down'
+    }
+    else {
+      object.markers$group[i] = 'no'
+    }
+}
+volplot <- ggplot(subset(object.markers, log10q >2), aes(x = Difference, y = avg_log2FC)) + 
+   geom_point(size = 4, aes(color=cell_type)) +
+   scale_color_manual(values=mycolor)+
+   #geom_label_repel(data = subset(object.markers, group !='no'), aes(label=names), segment.size = 0.25, size = 2.5) +
+   geom_vline(xintercept = 0.0, linetype=2) +
+   geom_hline(yintercept = 0, linetype=2) +
+   theme_classic()
+legend <- cowplot::get_legend(volplot)
+ggsave(filename = './data_r/Processing/volplot_obj_left_legend.pdf', plot = legend,width = 2, height = 3.75, dpi = 300)
+volplot <- ggplot(subset(object.markers, log10q >2), aes(x = Difference, y = avg_log2FC)) + 
+   geom_point(size = 1, aes(color=cell_type)) +
+   scale_color_manual(values=mycolor)+
+   #geom_label_repel(data = subset(object.markers, group !='no'), aes(label=names), segment.size = 0.25, size = 2.5) +
+   geom_vline(xintercept = 0.0, linetype=2) +
+   geom_hline(yintercept = 0, linetype=2) +
+   theme_classic()
+volplot  <- volplot & NoLegend()
+volplot  <- volplot +ggtitle('AF_LA vs Ctrl_LA')
+ggsave(volplot, file='./data_r/Processing/volplot_obj_left.pdf', height = 4, width = 4.5)
+
+object.markers <- AFright.deg
+object.markers$names <- rownames(object.markers) 
+object.markers <- object.markers %>%
+   mutate(Difference = pct.1 - pct.2)
+object.markers$group=0
+for (i in 1:nrow(object.markers)){
+object.markers$log10q[i] <- -log(object.markers$p_val_adj[i], 10)
+    if (object.markers$avg_log2FC[i] >= 1 & object.markers$Difference[i] >= 0.2 & object.markers$pct.2[i] <= 0.1){
+      object.markers$group[i] = 'up'
+    }
+    else if (object.markers$avg_log2FC[i] <= -1 & object.markers$Difference[i] <= -0.2 & object.markers$pct.1[i] <= 0.1){
+      object.markers$group[i] = 'down'
+    }
+    else {
+      object.markers$group[i] = 'no'
+    }
+}
+volplot <- ggplot(subset(object.markers, log10q >2), aes(x = Difference, y = avg_log2FC)) + 
+   geom_point(size = 4, aes(color=cell_type)) +
+   scale_color_manual(values=mycolor)+
+   #geom_label_repel(data = subset(object.markers, group !='no'), aes(label=names), segment.size = 0.25, size = 2.5) +
+   geom_vline(xintercept = 0.0, linetype=2) +
+   geom_hline(yintercept = 0, linetype=2) +
+   theme_classic() 
+legend <- cowplot::get_legend(volplot)
+ggsave(filename = './data_r/Processing/volplot_obj_right_legend.pdf', plot = legend,width = 2, height = 3.75, dpi = 300)
+volplot <- ggplot(subset(object.markers, log10q >2), aes(x = Difference, y = avg_log2FC)) + 
+   geom_point(size = 1, aes(color=cell_type)) +
+   scale_color_manual(values=mycolor)+
+   #geom_label_repel(data = subset(object.markers, group !='no'), aes(label=names), segment.size = 0.25, size = 2.5) +
+   geom_vline(xintercept = 0.0, linetype=2) +
+   geom_hline(yintercept = 0, linetype=2) +
+   theme_classic() 
+volplot  <- volplot & NoLegend()
+volplot  <- volplot +ggtitle('AF_RA vs Ctrl_RA')
+ggsave(volplot, file='./data_r/Processing/volplot_obj_right.pdf', height = 4, width = 4.5)
+
+
+AF.deg <- data.frame(matrix(ncol = 6, nrow = 0))
+Ctrl.deg <- data.frame(matrix(ncol = 6, nrow = 0))
+for (i in seq_along(cluster)) {     
+     current_data <- cluster[i]
+AF.markers <- FindMarkers(subset(obj, subset = cell_type == current_data), ident.1 = "AF_LA", ident.2 = "AF_RA", assay = 'RNA', 
+                        group.by = 'group', logfc.threshold = 0.25, min.pct = 0, pseudocount.use = 0.01)
+AF.markers$cell_type <- current_data
+AF.deg <- rbind(AF.deg, AF.markers)
+Ctrl.markers <- FindMarkers(subset(obj, subset = cell_type == current_data), ident.1 = "Ctrl_LA", ident.2 = "Ctrl_RA", assay = 'RNA', 
+                        group.by = 'group', logfc.threshold = 0.25, min.pct = 0, pseudocount.use = 0.01)
+Ctrl.markers$cell_type <- current_data
+Ctrl.deg <- rbind(Ctrl.deg, Ctrl.markers)
+#assign(paste(current_data,'left.markers', sep=''), left.markers)
+#assign(paste(current_data,'right.markers', sep=''), right.markers)
+}
+table(AF.deg$cell_type)
+table(Ctrl.deg$cell_type)
+write.csv(AF.deg, "./data_r/Processing/obj_AF.deg.csv")
+write.csv(Ctrl.deg, "./data_r/Processing/obj_Ctrl.deg.csv")
+
+object.markers <- AF.deg
+object.markers$names <- rownames(object.markers)
+object.markers <- object.markers %>%
+   mutate(Difference = pct.1 - pct.2)
+object.markers$group=0
+for (i in 1:nrow(object.markers)){
+object.markers$log10q[i] <- -log(object.markers$p_val_adj[i], 10)
+    if (object.markers$avg_log2FC[i] >= 1 & object.markers$Difference[i] >= 0.2 & object.markers$pct.2[i] <= 0.1){
+      object.markers$group[i] = 'up'
+    }
+    else if (object.markers$avg_log2FC[i] <= -1 & object.markers$Difference[i] <= -0.2 & object.markers$pct.1[i] <= 0.1){
+      object.markers$group[i] = 'down'
+    }
+    else {
+      object.markers$group[i] = 'no'
+    }
+}
+volplot <- ggplot(subset(object.markers, log10q >2), aes(x = Difference, y = avg_log2FC)) + 
+   geom_point(size = 4, aes(color=cell_type)) +
+   scale_color_manual(values=mycolor)+
+   #geom_label_repel(data = subset(object.markers, group !='no'), aes(label=names), segment.size = 0.25, size = 2.5) +
+   geom_vline(xintercept = 0.0, linetype=2) +
+   geom_hline(yintercept = 0, linetype=2) +
+   theme_classic() 
+legend <- cowplot::get_legend(volplot)
+ggsave(filename = './data_r/Processing/volplot_obj_AF_legend.pdf', plot = legend,width = 2, height = 3.75, dpi = 300)
+volplot <- ggplot(subset(object.markers, log10q >2), aes(x = Difference, y = avg_log2FC)) + 
+   geom_point(size = 1, aes(color=cell_type)) +
+   scale_color_manual(values=mycolor)+
+   #geom_label_repel(data = subset(object.markers, group !='no'), aes(label=names), segment.size = 0.25, size = 2.5) +
+   geom_vline(xintercept = 0.0, linetype=2) +
+   geom_hline(yintercept = 0, linetype=2) +
+   theme_classic() 
+volplot  <- volplot & NoLegend()
+volplot  <- volplot +ggtitle('AF_LA vs AF_RA')
+ggsave(volplot, file='./data_r/Processing/volplot_obj_AF.pdf', height = 4, width = 4.5)
+
+object.markers <- Ctrl.deg
+object.markers$names <- rownames(object.markers) 
+object.markers <- object.markers %>%
+   mutate(Difference = pct.1 - pct.2)
+object.markers$group=0
+for (i in 1:nrow(object.markers)){
+object.markers$log10q[i] <- -log(object.markers$p_val_adj[i], 10)
+    if (object.markers$avg_log2FC[i] >= 1 & object.markers$Difference[i] >= 0.2 & object.markers$pct.2[i] <= 0.1){
+      object.markers$group[i] = 'up'
+    }
+    else if (object.markers$avg_log2FC[i] <= -1 & object.markers$Difference[i] <= -0.2 & object.markers$pct.1[i] <= 0.1){
+      object.markers$group[i] = 'down'
+    }
+    else {
+      object.markers$group[i] = 'no'
+    }
+}
+volplot <- ggplot(subset(object.markers, log10q >2), aes(x = Difference, y = avg_log2FC)) + 
+   geom_point(size = 4, aes(color=cell_type)) +
+   scale_color_manual(values=mycolor)+
+   #geom_label_repel(data = subset(object.markers, group !='no'), aes(label=names), segment.size = 0.25, size = 2.5) +
+   geom_vline(xintercept = 0.0, linetype=2) +
+   geom_hline(yintercept = 0, linetype=2) +
+   theme_classic() 
+legend <- cowplot::get_legend(volplot)
+ggsave(filename = './data_r/Processing/volplot_obj_Ctrl_legend.pdf', plot = legend,width = 2, height = 3.75, dpi = 300)
+volplot <- ggplot(subset(object.markers, log10q >2), aes(x = Difference, y = avg_log2FC)) + 
+   geom_point(size = 1, aes(color=cell_type)) +
+   scale_color_manual(values=mycolor)+
+   #geom_label_repel(data = subset(object.markers, group !='no'), aes(label=names), segment.size = 0.25, size = 2.5) +
+   geom_vline(xintercept = 0.0, linetype=2) +
+   geom_hline(yintercept = 0, linetype=2) +
+   theme_classic() 
+volplot  <- volplot & NoLegend()
+volplot  <- volplot +ggtitle('Ctrl_LA vs Ctrl_RA')
+ggsave(volplot, file='./data_r/Processing/volplot_obj_Ctrl.pdf', height = 4, width = 4.5)
+
+
+av_sce <- AggregateExpression(sce, group.by = "cell_type", assays = "RNA")
+av_sce <- av_sce[[1]]
+cg_sce = names(tail(sort(apply(av_sce,1,sd)),2000))
+av_sce <-as.data.frame(av_sce)
+my_col<-colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))
+corplot_sce <- pheatmap::pheatmap(cor(av_sce[cg_sce,],av_sce[cg_sce,], method = 'spearman'), border_color = 'white', col=my_col(200))
+ggsave(corplot_sce,file="./data_r/Processing/corplot_op.pdf",width = 5, height = 4)
+
+
+
+#cell density
+library(viridis)
+library(ggpointdensity)
+library(tidyverse)
+library(Seurat)
+library(ggplot2)
+obj <- sce
+obj_list <- SplitObject(obj, split.by = "group")
+obj_AF_LA <- obj_list$AF_LA
+obj_Ctrl_LA <- obj_list$Ctrl_LA
+obj_AF_RA <- obj_list$AF_RA
+obj_Ctrl_RA <- obj_list$Ctrl_RA
+seurat_obj <- obj_AF_LA
+data <- cbind(Embeddings(object=seurat_obj[['umap.harmony']]),FetchData(seurat_obj,'seurat_clusters'))
+p1 <- ggplot(data = data, mapping = aes(x = umapharmony_1, y = umapharmony_2)) +
+ geom_pointdensity(adjust = 4) + #密度散点图（geom_pointdensity）
+ scale_color_viridis()+theme_bw() + ggtitle('AF_LA')
+seurat_obj <- obj_Ctrl_LA
+data <- cbind(Embeddings(object=seurat_obj[['umap.harmony']]),FetchData(seurat_obj,'seurat_clusters'))
+p2 <- ggplot(data = data, mapping = aes(x = umapharmony_1, y = umapharmony_2)) +
+ geom_pointdensity(adjust = 16) + #密度散点图（geom_pointdensity）
+ scale_color_viridis()+theme_bw() + ggtitle('Ctrl_LA')
+seurat_obj <- obj_AF_RA
+data <- cbind(Embeddings(object=seurat_obj[['umap.harmony']]),FetchData(seurat_obj,'seurat_clusters'))
+p3 <- ggplot(data = data, mapping = aes(x = umapharmony_1, y = umapharmony_2)) +
+ geom_pointdensity(adjust = 4) + #密度散点图（geom_pointdensity）
+ scale_color_viridis()+theme_bw() + ggtitle('AF_RA')
+seurat_obj <- obj_Ctrl_RA
+data <- cbind(Embeddings(object=seurat_obj[['umap.harmony']]),FetchData(seurat_obj,'seurat_clusters'))
+p4 <- ggplot(data = data, mapping = aes(x = umapharmony_1, y = umapharmony_2)) +
+ geom_pointdensity(adjust = 3) + #密度散点图（geom_pointdensity）
+ scale_color_viridis()+theme_bw() + ggtitle('Ctrl_RA')
+p <- (p1 + p3 ) / (p2 + p4 ) #+ plot_layout(ncol = 2,  guides = 'collect')
+p
+ggsave(p,file="./data_r/Processing/haf_umap_dencity.pdf",width = 10, height = 8)
+
+
+library(ggSCvis)
+library(grid)
+p1<-
+ggscplot(object=obj, reduction = "umap.harmony")+
+stat_density2d(geom="raster",aes(fill=..density..),
+contour=F,show.legend=F)+
+geom_scPoint(color="white",size=0.001)+
+facet_wrap(~group,ncol=2)+
+theme_bw()+
+theme(panel.grid=element_blank(),
+axis.ticks=element_blank(),
+strip.background=element_blank(),
+strip.text=element_blank(),
+axis.text=element_blank())+
+scale_fill_viridis_c(option="magma",direction=1)+
+coord_cartesian(expand=F)
+ggsave(p1,file="./data_r/Processing/haf_umap_dencity_galaxy.pdf",width = 10, height = 8)
+
+
+
 Idents(sce) <- sce@meta.data$cell_type
 #cell chat
 sce$samples <- sce$sample
@@ -578,6 +843,200 @@ library(uwot)
 #BiocManager::install("CellChat")
 library(CellChat)
 CellChatDB <- CellChatDB.human
+
+
+library(GSVA)
+library('GSEABase')
+library(ggplot2)
+library(ggthemes)
+library(ggprism)
+haf <- sce
+Idents(haf) <- 'sample'
+my_levels <- c('P02_LA_AF',   'P03_LA_AF',   'P04_LA_AF', 'P06_LA_AF',   'P07_LA_AF',   
+'P09_LA_CTRL', 'P10_LA_CTRL',   'P11_LA_CTRL', 
+'P04_RA_AF',   'P05_RA_AF',   'P13_RA_AF', 
+'P10_RA_CTRL', 'P15_RA_CTRL', 'P16_RA_CTRL', 'P17_RA_CTRL')
+Idents(haf) <- factor(Idents(haf), levels = my_levels)
+expr <- AggregateExpression(haf, assays = 'RNA', slot = 'data')[[1]]
+expr <- expr[rowSums(expr)>0,]
+expr <- as.matrix(expr)
+genesets = msigdbr(species = 'Homo sapiens', category = 'H')
+genesets <- subset(genesets,  select = c('gs_name', 'gene_symbol')) %>% as.data.frame()
+genesets <- split(genesets$gene_symbol, genesets$gs_name)
+#GSVA_hall <- gsva(expr=expr,gset.idx.list = genesets, mx.diff = T, kcdf = 'Gaussian', parallel.sz = 4)
+GSVA_obj <- gsvaParam(expr, genesets, maxDiff=TRUE)
+GSVA_hall <- gsva(GSVA_obj)
+head(GSVA_hall)
+library(limma)
+group <- factor(c(rep('AF_LA',5),rep('Ctrl_LA',3),rep('AF_RA',3),rep('Ctrl_RA',4)),levels = c('AF_LA','Ctrl_LA', 'AF_RA','Ctrl_RA'))
+design <- model.matrix(~0+group)
+colnames(design)= levels(factor(group))
+rownames(design)= colnames(GSVA_hall)
+compare <- makeContrasts(AF_LA - Ctrl_LA, levels = design)
+fit <- lmFit(GSVA_hall,design)
+fit2 <- contrasts.fit(fit,compare)
+fit3 <- eBayes(fit2)
+diff <- topTable(fit3, coef = 1, number = 200)
+dat_plot <- data.frame(id = row.names(diff),t = diff$t)
+library(stringr)
+dat_plot$id <- str_replace(dat_plot$id,'HALLMARK_','')
+dat_plot$threshold = factor(ifelse(dat_plot$t >-2,ifelse(dat_plot$t >=2,'Up','NoSig'),'Down'),levels=c('Up','Down','NoSig'))
+dat_plot <- dat_plot %>% arrange(t)
+dat_plot$id <- factor(dat_plot$id, levels = dat_plot$id)
+dat_plot_left <- dat_plot
+dat_plot_left$group <- 'Left'
+compare <- makeContrasts(AF_RA - Ctrl_RA, levels = design)
+fit <- lmFit(GSVA_hall,design)
+fit2 <- contrasts.fit(fit,compare)
+fit3 <- eBayes(fit2)
+#plotSA(tmp, main="Final model: Mean-variance trend")
+diff <- topTable(fit3, coef = 1, number = 200)
+dat_plot <- data.frame(id = row.names(diff),t = diff$t)
+library(stringr)
+dat_plot$id <- str_replace(dat_plot$id,'HALLMARK_','')
+dat_plot$threshold = factor(ifelse(dat_plot$t >-2,ifelse(dat_plot$t >=2,'Up','NoSig'),'Down'),levels=c('Up','Down','NoSig'))
+dat_plot <- dat_plot %>% arrange(t)
+dat_plot$id <- factor(dat_plot$id, levels = dat_plot$id)
+dat_plot_right <- dat_plot
+dat_plot_right$group <- 'Right'
+dat_plot <- rbind(dat_plot_left, dat_plot_right)
+dat_plot <- unite(dat_plot,"group_threshold",c("group","threshold"), sep="-", remove = F)
+#dat_plot$'group_threshold'[which(str_detect(dat_plot$threshold, "NoSig"))] <- "NoSig"
+p <- ggplot(dat_plot,aes(x=reorder(id,t),
+                         y=t,
+                  fill=group_threshold))+ 
+     geom_bar(stat='identity',
+           position = 'dodge')+
+     labs(x='id', y='t')+
+     RotatedAxis() +
+     ggplot2:::coord_flip()+
+     scale_fill_manual(values = c('Left-Up' = '#dd5129', 'Right-Up' = '#fab255', 'Left-NoSig' = 'grey60', 'Right-NoSig' = '#cccccc', 'Left-Down' = '#0f7ba2', 'Right-Down' = '#43b284'))+
+     #scale_color_manual(values = 'white')+
+     geom_hline(yintercept = c(-2,0,2), color = 'white', size = 0.5, lty='solid')+
+     xlab('')+
+     ylab('t value of GSVA score')+ 
+     theme_prism(border=T) +
+     theme(
+           axis.text.x = element_text(  size = rel(0.8) ))+
+     theme(
+           axis.text.y = element_text(  size = rel(0.8) ))+
+ggtitle('AF versus Ctrl')
+p
+ggsave("./data_r/Processing/haf_gsva_AFvsCtrl.pdf",p, width = 7.5,height = 10)
+
+compare <- makeContrasts(AF_LA - AF_RA, levels = design)
+fit <- lmFit(GSVA_hall,design)
+fit2 <- contrasts.fit(fit,compare)
+fit3 <- eBayes(fit2)
+diff <- topTable(fit3, coef = 1, number = 200)
+dat_plot <- data.frame(id = row.names(diff),t = diff$t)
+library(stringr)
+dat_plot$id <- str_replace(dat_plot$id,'HALLMARK_','')
+dat_plot$threshold = factor(ifelse(dat_plot$t >-2,ifelse(dat_plot$t >=2,'Up','NoSig'),'Down'),levels=c('Up','Down','NoSig'))
+dat_plot <- dat_plot %>% arrange(t)
+dat_plot$id <- factor(dat_plot$id, levels = dat_plot$id)
+dat_plot_AF <- dat_plot
+dat_plot_AF$group <- 'AF'
+compare <- makeContrasts(Ctrl_LA - Ctrl_RA, levels = design)
+fit <- lmFit(GSVA_hall,design)
+fit2 <- contrasts.fit(fit,compare)
+fit3 <- eBayes(fit2)
+diff <- topTable(fit3, coef = 1, number = 200)
+dat_plot <- data.frame(id = row.names(diff),t = diff$t)
+library(stringr)
+dat_plot$id <- str_replace(dat_plot$id,'HALLMARK_','')
+dat_plot$threshold = factor(ifelse(dat_plot$t >-2,ifelse(dat_plot$t >=2,'Up','NoSig'),'Down'),levels=c('Up','Down','NoSig'))
+dat_plot <- dat_plot %>% arrange(t)
+dat_plot$id <- factor(dat_plot$id, levels = dat_plot$id)
+dat_plot_Ctrl <- dat_plot
+dat_plot_Ctrl$group <- 'Ctrl'
+dat_plot <- rbind(dat_plot_AF, dat_plot_Ctrl)
+dat_plot <- unite(dat_plot,"group_threshold",c("group","threshold"), sep="-", remove = F)
+#dat_plot$'group_threshold'[which(str_detect(dat_plot$threshold, "NoSig"))] <- "NoSig"
+p <- ggplot(dat_plot,aes(x=reorder(id,t),
+                         y=t,
+                  fill=group_threshold))+ 
+     geom_bar(stat='identity',
+           position = 'dodge')+
+     labs(x='id', y='t')+
+     RotatedAxis() +
+     ggplot2:::coord_flip()+
+     scale_fill_manual(values = c('AF-Up' = '#dd5129', 'Ctrl-Up' = '#fab255', 'AF-NoSig' = 'grey60', 'Ctrl-NoSig' = '#cccccc', 'AF-Down' = '#0f7ba2', 'Ctrl-Down' = '#43b284'))+
+     geom_hline(yintercept = c(-2,2), color = 'white', size = 0.5, lty='solid')+
+     xlab('')+
+     ylab('t value of GSVA score')+ 
+     theme_prism(border=T) +
+     theme(
+           axis.text.x = element_text( size = rel(0.8) ))+
+     theme(
+           axis.text.y = element_text( size = rel(0.8) ))+
+ggtitle('Left versus Right')
+p
+ggsave("./data_r/Processing/haf_gsva_LeftvsRight.pdf",p, width = 7.5,height = 10)
+
+ 
+
+#GSVA(分组水平)
+Idents(haf) <- 'group'
+expr <- AggregateExpression(haf, assays = 'RNA', slot = 'data')[[1]]
+expr <- expr[rowSums(expr)>0,]
+expr <- as.matrix(expr)
+genesets = msigdbr(species = 'Homo sapiens', category = 'H')
+genesets <- subset(genesets,  select = c('gs_name', 'gene_symbol')) %>% as.data.frame()
+genesets$gs_name <- str_replace(genesets$gs_name,'HALLMARK_','')
+genesets <- split(genesets$gene_symbol, genesets$gs_name)
+#gsva.res <- gsva(expr, genesets, method = 'ssgsea')#this is the old version code, not fit for new version package.
+gsvaPar <- ssgseaParam(exprData = expr, geneSets = genesets, normalize = TRUE)
+gsva_data <- gsva(gsvaPar, verbose = FALSE)
+gsva.res <- gsva_data
+gsva.df <- data.frame(Genesets = rownames(gsva.res), gsva.res, check.names = F)
+gsva_group <- pheatmap::pheatmap(gsva.res, show_colonames = T, scale = 'row')
+gsva_group
+ggsave(gsva_group,file="./data_r/Processing/haf_gsva_group.pdf",width = 6, height = 12)
+
+
+library(ArchR)
+library(GSVA)
+library('GSEABase')
+library(ggplot2)
+library(ggthemes)
+library(ggprism)
+genesets = msigdbr(species = 'Homo sapiens', category = 'H')
+genesets <- subset(genesets,  select = c('gs_name', 'gene_symbol')) %>% as.data.frame()
+genesets <- split(genesets$gene_symbol, genesets$gs_name)
+
+haf.list <-SplitObject(haf, split.by = "group")
+
+for (i in seq_along(genesets)) {    
+     current_list <- names(genesets)[i]     
+     current_data <- genesets[[current_list]]
+
+     for (j in seq_along(haf.list)) {    
+     sample_name <- names(haf.list)[j]     
+     sample <- haf.list[[sample_name]]
+
+     DefaultAssay(sample) <- "RNA"
+     expdata <- GetAssayData(sample)
+
+     Pop1 <- current_data
+     pops<-list(Pop1)
+     z_scores<-NULL
+          for (k in 1:length(pops)) {
+          genes <- pops[[k]]
+          zz <- which(tolower(rownames(expdata)) %in% tolower(genes))
+          av <- numeric(ncol(expdata))
+          geneExp <- as.matrix(expdata[zz, ])
+          geneExp <- t(scale(t(geneExp)))
+          geneExp[is.nan(geneExp)] <- 0
+          z_scores <- rbind(z_scores,(av + colSums(geneExp) / length(zz)))
+          }
+     sample[[current_list]] <-z_scores[1,]
+     p1 <- FeaturePlot(object=sample, features = current_data,reduction = 'umap', order = TRUE, raster =FALSE) + ggtitle     (current_data) + scale_color_gradientn(colors=paletteContinuous("solarExtra"), oob=scales::squish, limits=c(0,1))
+     p1
+     ggsave(p1,file=paste('./data_r/Processing/Z_', sample_name, '_', current_list, '.pdf', sep = ''),width = 5, height = 4)
+}
+}
+
 
 
 KS_cellchat <- function(x){
@@ -682,6 +1141,109 @@ saveRDS(sce, file = "./data_r/Annotation/sce.RDS")
 metadata <- sce[[]]
 write.csv(metadata,file = './data_r/Annotation/sce_meta.csv')
 
+
+
+library(scCustomize)
+obj <- sce
+Idents(obj) <- obj@meta.data$group
+my_levels <- c('AF_LA', 'Ctrl_LA', 'AF_RA', 'Ctrl_RA')
+Idents(obj) <- factor(Idents(obj), levels = my_levels)
+
+gene.list <- c('ATRNL1', 'KCNT2', 'NRXN3', 'IFNG-AS1',  'SPP1', 'NRG1', 'ERBB4', 'SEMA3C', 'SEMA3B', 'SEMA3A')
+for (i in seq_along(gene.list)) {    
+     gene <- gene.list[i]
+
+Idents(obj) <- obj@meta.data$group
+my_levels <- c('AF_LA', 'Ctrl_LA', 'AF_RA', 'Ctrl_RA')
+Idents(obj) <- factor(Idents(obj), levels = my_levels)
+
+p1 <- DotPlot(obj, features = gene) + ggtitle('Cell cluster marker genes')+#ggplot2:::coord_flip()+RotatedAxis() +
+           scale_color_gradientn(colors= rev(brewer.pal(n = 11, name = "RdYlBu"))) +
+           theme(plot.title = element_text( size = 16, face = "bold"),
+                 panel.grid.major = element_line(colour = "grey90",size=0.2),
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                 axis.text.x=element_text(color = 'black', size=12),
+                 axis.text.y=element_text(color = 'black', size=12) ) 
+ggsave(p1,file=paste('./data_r/Processing/obj_', gene, '_dot_group.pdf', sep = ''), width = 3.5, height = 4)
+
+p1 <- FeaturePlot_scCustom(seurat_object=obj,features=gene, reduction = 'umap.harmony', split.by = 'group')
+ggsave(p1,file=paste('./data_r/Processing/obj_', gene, '_feature_group.pdf', sep = ''), width = 15, height = 4)
+
+p1 <- VlnPlot(obj, features=gene,  pt.size = 0, col = mycolor, raster =FALSE)
+ggsave(p1,file=paste('./data_r/Processing/obj_', gene, '_vln_group.pdf', sep = ''), width = 3.5, height = 4)
+
+Idents(obj) <- obj@meta.data$cell_type
+p1 <- DotPlot(obj, features = gene) + ggtitle('Cell cluster marker genes')+#ggplot2:::coord_flip()+RotatedAxis() +
+           scale_color_gradientn(colors= rev(brewer.pal(n = 11, name = "RdYlBu"))) +
+           theme(plot.title = element_text( size = 16, face = "bold"),
+                 panel.grid.major = element_line(colour = "grey90",size=0.2),
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                 axis.text.x=element_text(color = 'black', size=12),
+                 axis.text.y=element_text(color = 'black', size=12) ) 
+ggsave(p1,file=paste('./data_r/Processing/obj_', gene, '_dot_cell_type.pdf', sep = ''), width = 4.5, height = 4)
+
+p1 <- VlnPlot(obj, features=gene,  pt.size = 0, col = mycolor, raster =FALSE)
+ggsave(p1,file=paste('./data_r/Processing/obj_', gene, '_vln_cell_type.pdf', sep = ''), width = 5.5, height = 4)
+
+}
+ 
+Idents(obj) <- obj@meta.data$group
+my_levels <- c('AF_LA', 'Ctrl_LA', 'AF_RA', 'Ctrl_RA')
+Idents(obj) <- factor(Idents(obj), levels = my_levels)
+p1 <- DotPlot(obj, features = c('SEMA3C', 'NRP1', 'PLXNA2', 'PLXNA4',  'NRG1', 'ERBB4')) + ggtitle('SEMA3 & NRG genes')+RotatedAxis() +ggplot2:::coord_flip()+
+           scale_color_gradientn(colors= rev(brewer.pal(n = 11, name = "RdYlBu"))) +
+           theme(plot.title = element_text( size = 16, face = "bold"),
+                 panel.grid.major = element_line(colour = "grey90",size=0.2),
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                 axis.text.x=element_text(color = 'black', size=12),
+                 axis.text.y=element_text(color = 'black', size=12) ) 
+p1
+ggsave(p1,file="./data_r/Processing/obj_combine_dot_group.pdf", width = 4.5, height = 3)
+
+Idents(obj) <- obj@meta.data$cell_type
+p2 <- DotPlot(obj, features = c('SEMA3C', 'NRP1', 'PLXNA2', 'PLXNA4',  'NRG1', 'ERBB4')) + ggtitle('SEMA3 & NRG genes')+RotatedAxis() +ggplot2:::coord_flip()+
+           scale_color_gradientn(colors= rev(brewer.pal(n = 11, name = "RdYlBu"))) +
+           theme(plot.title = element_text( size = 16, face = "bold"),
+                 panel.grid.major = element_line(colour = "grey90",size=0.2),
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                 axis.text.x=element_text(color = 'black', size=12),
+                 axis.text.y=element_text(color = 'black', size=12) ) 
+p2
+ggsave(p2,file="./data_r/Processing/obj_combine_dot_cell_type.pdf", width = 7, height = 3)
+
+p3 <- p1 + p2 + plot_layout( guides = 'collect')
+
+
+
+Idents(obj) <- obj@meta.data$group
+my_levels <- c('AF_LA', 'Ctrl_LA', 'AF_RA', 'Ctrl_RA')
+Idents(obj) <- factor(Idents(obj), levels = my_levels)
+p1 <- DotPlot(obj, features = c('ATRNL1', 'SPP1', 'CD44', 'FOSL1', 'SEMA3C', 'SEMA3B', 'SEMA3A', 'PLXNA4', 'NRG1', 'ERBB4', 'KCNT2', 'ATP2A2', 'CAMK2D', 'NRXN3')) + ggtitle('Cardiac atrial tissue')+RotatedAxis() +ggplot2:::coord_flip()+
+           scale_color_gradientn(colors= rev(brewer.pal(n = 11, name = "RdYlBu"))) +
+           theme(plot.title = element_text( size = 16, face = "bold"),
+                 panel.grid.major = element_line(colour = "grey90",size=0.2),
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                 axis.text.x=element_text(color = 'black', size=12),
+                 axis.text.y=element_text(color = 'black', size=12) ) 
+p1
+ggsave(p1,file="./data_r/Processing/obj_combine_dot_group.pdf", width = 4.5, height = 4)
+
+Idents(obj) <- obj@meta.data$cell_type
+p1 <- DotPlot(obj, features = c('ATRNL1', 'SPP1', 'CD44', 'FOSL1', 'SEMA3C', 'SEMA3B', 'SEMA3A', 'PLXNA4', 'NRG1', 'ERBB4', 'KCNT2', 'ATP2A2', 'CAMK2D', 'NRXN3')) + ggtitle('Cardiac atrial tissue')+RotatedAxis() +ggplot2:::coord_flip()+
+           scale_color_gradientn(colors= rev(brewer.pal(n = 11, name = "RdYlBu"))) +
+           theme(plot.title = element_text( size = 16, face = "bold"),
+                 panel.grid.major = element_line(colour = "grey90",size=0.2),
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                 axis.text.x=element_text(color = 'black', size=12),
+                 axis.text.y=element_text(color = 'black', size=12) ) 
+p1
+ggsave(p1,file="./data_r/Processing/obj_combine_dot_cell_type.pdf", width = 7.5, height = 4)
 
 
 
