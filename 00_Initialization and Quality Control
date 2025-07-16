@@ -50,14 +50,19 @@ mycolor  <- readLines('./Colour.txt')
 
 
 Find_doublet <- function(data){
-#sweep.res.list <- paramSweep_v3(data, PCs = 1:30, sct = FALSE)
-sweep.res.list <- paramSweep_v3_Seurat5(data, PCs = 1:30, sct = FALSE)
-sweep.stats <- summarizeSweep(sweep.res.list, GT = FALSE)
-bcmvn <- find.pK(sweep.stats)
-nExp_poi <- round(0.05*ncol(data))
-p<-as.numeric(as.vector(bcmvn[bcmvn$MeanBC==max(bcmvn$MeanBC),]$pK))
-#data <- doubletFinder_v3(data, PCs = 1:30, pN = 0.25, pK = p, nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
-data <- doubletFinder_v3_SeuratV5(data, PCs = 1:30, pN = 0.25, pK = p, nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
+data <- NormalizeData(data)
+data <- FindVariableFeatures(data, selection.method = "vst", nfeatures = 3000)
+data <- ScaleData(data)
+data <- RunPCA(data)  
+data <- RunUMAP(data, dims = 1:10)  
+sweep.res.list_data <- paramSweep(data, PCs = 1:10, sct = FALSE)
+sweep.stats_data <- summarizeSweep(sweep.res.list_data, GT = FALSE)
+bcmvn_data <- find.pK(sweep.stats_data)
+annotations <- data@meta.data$sample
+homotypic.prop <- modelHomotypic(annotations)
+nExp_poi <- round(0.075*nrow(data@meta.data)) 
+nExp_poi.adj <- round(nExp_poi*(1-homotypic.prop))
+data <- doubletFinder(data, PCs = 1:10, pN = 0.25, pK = 0.09, nExp = nExp_poi, reuse.pANN = NULL, sct = FALSE)
 colnames(data@meta.data)[ncol(data@meta.data)] = "doublet_info"
 return(data)
 }
@@ -190,16 +195,8 @@ sce.list <- obj.list
 for (i in seq_along(sce.list)) {    
      current_list <- names(sce.list)[i]     
      current_data <- sce.list[[current_list]]   
-
-     current_data <- NormalizeData(current_data)
-     current_data <- FindVariableFeatures(current_data, selection.method = "vst", nfeatures = 3000)
-     current_data <- ScaleData(current_data)
-     current_data <- RunPCA(current_data)  
-
      current_data <- Find_doublet(current_data)
-     #current_data <-subset(current_data,subset=doublet_info=="Singlet")
-  
-     sce.list[[current_list]]    <- current_data
+     sce.list[[current_list]] <- current_data
  }
 # 15min / 8000 cells
 sce <-  merge(sce.list[[1]], sce.list[2: length(sce.list)])
