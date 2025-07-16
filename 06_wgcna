@@ -1,6 +1,52 @@
 #each cell type was analyzed in similar steps; this code uses cardiomyocyte data as an example.
+conda activate r
+R
+library(Seurat)
+library(ggplot2)
+library(stringr)
+library(ggsci)
+library(org.Hs.eg.db)
+library(tidyverse)
+library(showtext)
+library(scales)
+library(reshape2)
+library(patchwork)
+library(pheatmap)
+library(DoubletFinder)
+library(ggplot2)
+library(dplyr)
+library(ggpubr)
+library(cowplot)
+library(REdaS)
+library(qdapTools)
+library(clusterProfiler)
+library(RCurl)
+library(XML)
+library(clustree)
+library(enrichplot)
+library(GOplot)
+library(DOSE)
+library(ggnewscale)
+library(topGO)
+library(circlize)
+library(ComplexHeatmap)
+library(msigdbr)
+library(GSVA)
+library(future)
+library(ggrepel)
+library(harmony)
+library(ArchR)
+library(extrafont)
+library(MetBrewer)
+library(reshape)
 
-seurat_obj <- haf_Cardiomyocyte
+rm(list=ls())
+font_import(pattern = "Arial")
+dir <- ('/data/xinzangzhongxin/AF/')#depends
+setwd(dir)
+mycolor  <- readLines('./Colour.txt')
+seurat_obj <- readRDS("./data_r/sce_CM.RDS")
+
 
 library(Seurat)
 library(WGCNA)
@@ -43,7 +89,14 @@ plot_list <- PlotSoftPowers(seurat_obj)
 # Assemble with patchwork
 p1 <- wrap_plots(plot_list, CMol=2)
 ggsave(p1,file="hAF_CM_hdwgcna_spt.pdf",width = 10, height = 8)
-p1
+
+soft_power_df <- seurat_obj@misc$hAF_CM$wgcna_powerTable
+qualified_powers <- soft_power_df$Power[soft_power_df$SFT.R.sq >= 0.8]
+if (length(qualified_powers) > 0) {
+  best_soft_power <- min(qualified_powers)  # 首次达到0.8的软阈值
+} else {
+  best_soft_power <- soft_power_df$power[which.max(soft_power_df$SFT.R.sq)]  # 最接近0.8的值
+}
 
 # construct co-expression network:
 seurat_obj <- ConstructNetwork(
@@ -78,14 +131,13 @@ seurat_obj <- ResetModuleNames(
   new_name = "hAF-CM-M"
 )
 
-#BiocManager::install('MetBrewer')
-library(MetBrewer)
-display_all()
-new_colors1 <- paste0(met.brewer("Austria"))
-new_colors2 <- paste0(met.brewer("Egypt"))
-new_colors0 <- paste0(met.brewer("Java"))
-new_colors3 <- c(new_colors1, new_colors2,new_colors0)
-new_colors3 <- new_colors3[c(1:7)] #depends on the count of modules
+# get hub genes
+hub_df <- GetHubGenes(seurat_obj, n_hubs = 10)
+head(hub_df)
+t <- table(hub_df$module)
+n <- length(t) -1
+
+new_colors3 <- mycolor[c(1:n)]
 seurat_obj <- ResetModuleColors(seurat_obj, new_colors3)
 
 PlotDendrogram(seurat_obj, main='hAF_CM_hdWGCNA_Dendrogram')
