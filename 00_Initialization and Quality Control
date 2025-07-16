@@ -1,3 +1,5 @@
+conda activate r
+R
 library(Seurat)
 library(ggplot2)
 library(stringr)
@@ -17,9 +19,7 @@ library(cowplot)
 library(REdaS)
 library(qdapTools)
 library(clusterProfiler)
-library(harmony)
 library(RCurl)
-library(stringr)
 library(XML)
 library(clustree)
 library(enrichplot)
@@ -31,13 +31,15 @@ library(circlize)
 library(ComplexHeatmap)
 library(msigdbr)
 library(GSVA)
-library(paletteer)
-library(magrittr)
+library(future)
+library(ggrepel)
+library(harmony)
+library(ArchR)
+library(extrafont)
+library(MetBrewer)
 
-font_add('Arial','/Library/Fonts/Arial.ttf')
-showtext_auto()
-
-setwd("D:/Work/AF/Rdata/Total/")
+rm(list=ls())
+font_import(pattern = "Arial")
 
 mycolor1<-pal_npg("nrc", alpha = 1)(10)
 mycolor2<-pal_aaas("default", alpha = 1)(10)
@@ -45,196 +47,332 @@ mycolor3<-pal_nejm("default", alpha = 1)(8)
 mycolor4<-pal_lancet("lanonc", alpha = 1)(9)
 mycolor5<-pal_jama("default", alpha = 1)(7)
 mycolor6<-pal_jco("default", alpha = 1)(10)
-mycolor <-c(mycolor3,mycolor1,mycolor2,mycolor4,mycolor5,mycolor6)
+new_colors1 <- paste0(met.brewer("Monet"))
+new_colors2 <- paste0(met.brewer("Egypt"))
+new_colors3 <- paste0(met.brewer("Austria"))
+new_colors4 <- paste0(met.brewer("Redon", n=10))
+new_colors5 <- paste0(met.brewer("Java"))
+new_colors6 <- paste0(met.brewer("Renoir"))
+mycolor <-c(mycolor3, new_colors2, new_colors1, mycolor1,new_colors4, new_colors6, new_colors5, new_colors3, mycolor2,mycolor4,mycolor5,mycolor6 )
+mycolor <-unique(mycolor)
+mycolor <- mycolor[c( -3)]
+mycolor <- mycolor[c( -9, -10)]
+options(Seurat.object.assay.version = "v5")
+set.seed(12345)
 
-options(Seurat.object.assay.version = "v3")
+dir <- ('/data/xinzangzhongxin/AF/')#depends
+setwd(dir)
+mycolor  <- readLines('./Colour.txt')
 
-P01_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S1/filtered_feature_bc_matrix/")
-P02_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S2/filtered_feature_bc_matrix/")
-P03_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S3/filtered_feature_bc_matrix/")
-P04_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S4_1/filtered_feature_bc_matrix/")
-P05_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S5_1/filtered_feature_bc_matrix/")
-P06_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S6/filtered_feature_bc_matrix/")
-P07_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S7/filtered_feature_bc_matrix/")
-P08_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S8/filtered_feature_bc_matrix/")
-P09_L.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S9/filtered_feature_bc_matrix/")
-P10_L.counts <- Read10X(data.dir = "./AF01/20231024_5sample/F001/LYQ_L/filtered_feature_bc_matrix/")
-P11_L.counts <- Read10X(data.dir = "./AF01/20231201_huaian_1sample/filtered_feature_bc_matrix/")
-P04_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S4_2/filtered_feature_bc_matrix/")
-P05_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S5_2/filtered_feature_bc_matrix/")
-P13_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S10/filtered_feature_bc_matrix/")
-P14_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S15/filtered_feature_bc_matrix/")
-P15_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S12/filtered_feature_bc_matrix/")
-P16_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S11/filtered_feature_bc_matrix/")
-P17_R.counts <- Read10X(data.dir = "./AF01/20230721_17sample/CellRanger/S17/filtered_feature_bc_matrix/")
-P10_R.counts <- Read10X(data.dir = "./AF01/20231024_5sample/F001/LYQ_R/filtered_feature_bc_matrix/")
-
-P01_L_AF <- CreateSeuratObject(counts = P01_L.counts, project = "P01_L_AF", min.cells = 3, min.features = 200)
-P02_L_AF <- CreateSeuratObject(counts = P02_L.counts, project = "P02_L_AF", min.cells = 3, min.features = 200)
-P03_L_AF <- CreateSeuratObject(counts = P03_L.counts, project = "P03_L_AF", min.cells = 3, min.features = 200)
-P04_L_AF <- CreateSeuratObject(counts = P04_L.counts, project = "P04_L_AF", min.cells = 3, min.features = 200)
-P05_L_AF <- CreateSeuratObject(counts = P05_L.counts, project = "P05_L_AF", min.cells = 3, min.features = 200)
-P06_L_AF <- CreateSeuratObject(counts = P06_L.counts, project = "P06_L_AF", min.cells = 3, min.features = 200)
-P07_L_AF <- CreateSeuratObject(counts = P07_L.counts, project = "P07_L_AF", min.cells = 3, min.features = 200)
-P08_L_AF <- CreateSeuratObject(counts = P08_L.counts, project = "P08_L_AF", min.cells = 3, min.features = 200)
-P09_L_CTRL <- CreateSeuratObject(counts = P09_L.counts, project = "P09_L_CTRL", min.cells = 3, min.features = 200)
-P10_L_CTRL <- CreateSeuratObject(counts = P10_L.counts, project = "P10_L_CTRL", min.cells = 3, min.features = 200)
-P11_L_CTRL <- CreateSeuratObject(counts = P11_L.counts, project = "P11_L_CTRL", min.cells = 3, min.features = 200)
-P04_R_AF <- CreateSeuratObject(counts = P04_R.counts, project = "P04_R_AF", min.cells = 3, min.features = 200)
-P05_R_AF <- CreateSeuratObject(counts = P05_R.counts, project = "P05_R_AF", min.cells = 3, min.features = 200)
-P13_R_AF <- CreateSeuratObject(counts = P13_R.counts, project = "P13_R_AF", min.cells = 3, min.features = 200)
-P14_R_AF <- CreateSeuratObject(counts = P14_R.counts, project = "P14_R_AF", min.cells = 3, min.features = 200)
-P15_R_CTRL <- CreateSeuratObject(counts = P15_R.counts, project = "P15_R_CTRL", min.cells = 3, min.features = 200)
-P16_R_CTRL <- CreateSeuratObject(counts = P16_R.counts, project = "P16_R_CTRL", min.cells = 3, min.features = 200)
-P17_R_CTRL <- CreateSeuratObject(counts = P17_R.counts, project = "P17_R_CTRL", min.cells = 3, min.features = 200)
-P10_R_CTRL <- CreateSeuratObject(counts = P10_R.counts, project = "P10_R_CTRL", min.cells = 3, min.features = 200)
-
-sce.merge <- merge(P01_L_AF, y = c(P02_L_AF, P03_L_AF,P04_L_AF, P05_L_AF, P06_L_AF, P07_L_AF, P08_L_AF, P09_L_CTRL, P10_L_CTRL, P11_L_CTRL, P04_R_AF, P05_R_AF, P13_R_AF, P14_R_AF, P15_R_CTRL, P16_R_CTRL, P17_R_CTRL, P10_R_CTRL), 
-                                add.cell.ids = c('P01_L_AF', 'P02_L_AF', 'P03_L_AF', 'P04_L_AF', 'P05_L_AF', 'P06_L_AF', 'P07_L_AF', 'P08_L_AF', 'P09_L_CTRL', 'P10_L_CTRL', 'P11_L_CTRL', 'P04_R_AF', 'P05_R_AF', 'P13_R_AF', 'P14_R_AF', 'P15_R_CTRL', 'P16_R_CTRL', 'P17_R_CTRL', 'P10_R_CTRL'), 
-                                project = "af")
-
-merged_seurat <- sce.merge
-merged_seurat$log10GenesPerUMI <- log10(merged_seurat$nFeature_RNA) / log10(merged_seurat$nCount_RNA)
-merged_seurat$mitoRatio <- PercentageFeatureSet(object = merged_seurat, pattern = "^MT-")
-merged_seurat$mitoRatio <- merged_seurat@meta.data$mitoRatio / 100
-HB.genes <- c("HBA1","HBA2","HBB","HBD","HBE1","HBG1","HBG2","HBM","HBQ1","HBZ")
-HB_m <- match(HB.genes, rownames(merged_seurat@assays$RNA))
-HB.genes <- rownames(merged_seurat@assays$RNA)[HB_m]
-HB.genes <- HB.genes[!is.na(HB.genes)]
-merged_seurat[["percent.HB"]]<-PercentageFeatureSet(merged_seurat, features=HB.genes)
-
-metadata <- merged_seurat@meta.data
-metadata$sample <- metadata$orig.ident
-metadata <- metadata %>%
-        dplyr::rename(nUMI = nCount_RNA, nGene = nFeature_RNA)
-metadata$group <-  NA
-metadata$group[which(str_detect(metadata$sample, "L_AF"))] <- "AF_left"
-metadata$group[which(str_detect(metadata$sample, "L_CTRL"))] <- "Ctrl_left"
-metadata$group[which(str_detect(metadata$sample, "R_AF"))] <- "AF_right"
-metadata$group[which(str_detect(metadata$sample, "R_CTRL"))] <- "Ctrl_right"
-
-metadata$patient_id <-  NA
-metadata$patient_id[which(str_detect(metadata$sample, "^P01_"))] <- "P01"
-metadata$patient_id[which(str_detect(metadata$sample, "^P02_"))] <- "P02"
-metadata$patient_id[which(str_detect(metadata$sample, "^P03_"))] <- "P03"
-metadata$patient_id[which(str_detect(metadata$sample, "^P04_"))] <- "P04"
-metadata$patient_id[which(str_detect(metadata$sample, "^P05_"))] <- "P05"
-metadata$patient_id[which(str_detect(metadata$sample, "^P06_"))] <- "P06"
-metadata$patient_id[which(str_detect(metadata$sample, "^P07_"))] <- "P07"
-metadata$patient_id[which(str_detect(metadata$sample, "^P08_"))] <- "P08"
-metadata$patient_id[which(str_detect(metadata$sample, "^P09_"))] <- "P09"
-metadata$patient_id[which(str_detect(metadata$sample, "^P10_"))] <- "P10"
-metadata$patient_id[which(str_detect(metadata$sample, "^P11_"))] <- "P11"
-metadata$patient_id[which(str_detect(metadata$sample, "^P13_"))] <- "P13"
-metadata$patient_id[which(str_detect(metadata$sample, "^P14_"))] <- "P14"
-metadata$patient_id[which(str_detect(metadata$sample, "^P15_"))] <- "P15"
-metadata$patient_id[which(str_detect(metadata$sample, "^P16_"))] <- "P16"
-metadata$patient_id[which(str_detect(metadata$sample, "^P17_"))] <- "P17"
-merged_seurat@meta.data <- metadata
-
-filtered_seurat <- subset(x = merged_seurat, 
-                         subset= (nUMI > 500) & 
-                           (nGene > 250) & 
-                           (log10GenesPerUMI > 0.80) & 
-                           (mitoRatio < 0.20) )
-
-scRNAseqData <- SplitObject(filtered_seurat, split.by = "sample")
-
-processed_objs <- list()
- for (i in seq_along(scRNAseqData)) {    
-     current_list <- names(scRNAseqData)[i]     
-     current_data <- scRNAseqData[[current_list]]    
-     current_data <- subset(x = current_data,
-                            subset= ( nUMI >= mean(current_data@meta.data$nUMI) -2*sd(current_data@meta.data$nUMI)) & 
-                                ( nUMI <= mean(current_data@meta.data$nUMI) +2*sd(current_data@meta.data$nUMI)) &  
-                                ( nGene >= mean(current_data@meta.data$nGene) -2*sd(current_data@meta.data$nGene)) & 
-                                ( nGene <= mean(current_data@meta.data$nGene) +2*sd(current_data@meta.data$nGene)))
-processed_objs[[current_list]] <- current_data
- }
-
-qc_objs <- list()
-for (i in seq_along(processed_objs)) {     
-     current_list <- names(processed_objs)[i]     
-     current_data <- processed_objs[[current_list]]     
-     current_data <- NormalizeData(current_data)
-     current_data <- FindVariableFeatures(current_data, selection.method = "vst", nfeatures = 2000)
-     all.genes <- rownames(current_data)
-     current_data <- ScaleData(current_data, features = all.genes)
-     current_data <- RunPCA(current_data)
-     current_data <- RunTSNE(current_data, dims = 1:30)
-qc_objs[[current_list]] <- current_data
- }
 
 Find_doublet <- function(data){
-sweep.res.list <- paramSweep_v3(data, PCs = 1:30, sct = FALSE)
+#sweep.res.list <- paramSweep_v3(data, PCs = 1:30, sct = FALSE)
+sweep.res.list <- paramSweep_v3_Seurat5(data, PCs = 1:30, sct = FALSE)
 sweep.stats <- summarizeSweep(sweep.res.list, GT = FALSE)
 bcmvn <- find.pK(sweep.stats)
 nExp_poi <- round(0.05*ncol(data))
 p<-as.numeric(as.vector(bcmvn[bcmvn$MeanBC==max(bcmvn$MeanBC),]$pK))
-data <- doubletFinder_v3(data, PCs = 1:30, pN = 0.25, pK = p, nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
+#data <- doubletFinder_v3(data, PCs = 1:30, pN = 0.25, pK = p, nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
+data <- doubletFinder_v3_SeuratV5(data, PCs = 1:30, pN = 0.25, pK = p, nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
 colnames(data@meta.data)[ncol(data@meta.data)] = "doublet_info"
 return(data)
 }
 
 
-df_objs <- list()
-for (i in seq_along(qc_objs)) {     
-     current_list <- names(qc_objs)[i]     
-     current_data <- qc_objs[[current_list]]     
-     current_data <- Find_doublet(current_data)
-     current_data <-subset(current_data,subset=doublet_info=="Singlet")
-df_objs[[current_list]] <- current_data
+samples <- dir(path="./Count/")
+count.list <- list()
+for (i in samples){
+       count.list[[i]]  <- Read10X(data.dir = paste0("./Count/", i, '/filtered_feature_bc_matrix/'))
+}
+
+sample.id <- names(count.list)
+write.table(sample.id,file =paste("./data_r/", 'sample_id_m.txt' ,sep =''), row.names =F )
+
+sce.list <- list()
+for (i in seq_along(count.list)) {    
+     current_list <- names(count.list)[i]     
+     sce.list[[current_list]] <- CreateSeuratObject(counts = count.list[[current_list]], project = current_list, min.cells = 3, min.features = 200 )
+     #saveRDS(sce.list[[current_list]], file = paste("./data_r/Sce_obj/", current_list, ".RDS",sep=""))
+}
+
+feats <- c("nUMI", "nGene", "mitoRatio")
+for (i in seq_along(sce.list)) {    
+     current_list <- names(sce.list)[i]     
+     current_data <- sce.list[[current_list]]
+     current_data$log10GenesPerUMI <- log10(current_data$nFeature_RNA) / log10(current_data$nCount_RNA)
+     current_data$mitoRatio <- PercentageFeatureSet(object = current_data, pattern = "^MT-") #MT
+     current_data$mitoRatio <- current_data@meta.data$mitoRatio / 100
+     current_data$riboRatio <- PercentageFeatureSet(object = current_data, pattern = "^RP[SL]") #"^RP[SL]")
+     current_data$riboRatio <- current_data@meta.data$riboRatio / 100
+     current_data$hbRatio <- PercentageFeatureSet(object = current_data, pattern = "^HB") #"^HB")
+     current_data$hbRatio <- current_data@meta.data$riboRatio / 100
+     current_data$sample <- current_data$orig.ident
+     current_data$nUMI <- current_data$nCount_RNA
+     current_data$nGene <- current_data$nFeature_RNA
+
+     metadata <- current_data[[]]
+     metadata$group <-  NA
+     metadata$group[which(str_detect(metadata$sample, "LA_AF"))] <- "AF_LA"
+     metadata$group[which(str_detect(metadata$sample, "LA_CTRL"))] <- "Ctrl_LA"
+     metadata$group[which(str_detect(metadata$sample, "RA_AF"))] <- "AF_RA"
+     metadata$group[which(str_detect(metadata$sample, "RA_CTRL"))] <- "Ctrl_RA"
+
+     metadata$patient_id <-  NA
+     metadata$patient_id[which(str_detect(metadata$sample, "^P01_"))] <- "P01"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P02_"))] <- "P02"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P03_"))] <- "P03"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P04_"))] <- "P04"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P05_"))] <- "P05"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P06_"))] <- "P06"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P07_"))] <- "P07"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P08_"))] <- "P08"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P09_"))] <- "P09"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P10_"))] <- "P10"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P11_"))] <- "P11"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P12_"))] <- "P12"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P13_"))] <- "P13"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P14_"))] <- "P14"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P15_"))] <- "P15"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P16_"))] <- "P16"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P17_"))] <- "P17"
+     metadata$patient_id[which(str_detect(metadata$sample, "^P18_"))] <- "P18"
+
+     current_data[[]] <- metadata
+
+     current_data <-RenameCells(current_data, add.cell.id = current_list)
+     sce.list[[current_list]] <- current_data
+     #saveRDS(sce.list[[current_list]], file = paste("./data_r/Sce_obj/", current_list, ".RDS",sep=""))
+
+     metadata <- current_data@meta.data 
+     p1 <- ggplot(data = metadata,aes(x=nGene))+
+     geom_histogram(bins = 150)+scale_x_continuous(limits = c(0,20000))+ggtitle(current_list)
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_nGene.pdf",sep=""), width = 5, height = 4)
+
+     p1 <- ggplot(data = metadata,aes(x=nUMI))+
+     geom_histogram(bins = 150)+scale_x_continuous(limits = c(0,20000))+ggtitle(current_list)
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_nUMI.pdf",sep=""), width = 5, height = 4)
+
+     p1 <- ggplot(data = metadata,aes(x=log10GenesPerUMI))+
+     geom_histogram(bins = 150)+scale_x_continuous(limits = c(0.5,1)) +ggtitle(current_list)
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_log10GenesPerUMI.pdf",sep=""), width = 5, height = 4)
+
+     p1 <- ggplot(data = metadata,aes(x=mitoRatio))+
+     geom_histogram(bins = 100)+scale_x_continuous(limits = c(0,1))+ggtitle(current_list)
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_mitoRatio.pdf",sep=""), width = 5, height = 4)
+
+     p1 <- ggplot(data = metadata,aes(x=riboRatio))+
+     geom_histogram(bins = 100)+scale_x_continuous(limits = c(0,1))+ggtitle(current_list)
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_riboRatio.pdf",sep=""), width = 5, height = 4)
+
+     p1 <- ggplot(data = metadata,aes(x=hbRatio))+
+     geom_histogram(bins = 100)+scale_x_continuous(limits = c(0,1))+ggtitle(current_list)
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_hbRatio.pdf",sep=""), width = 5, height = 4)
+
+     p1 <- VlnPlot(current_data, group.by = "orig.ident", features = feats, pt.size = 0.1, ncol = 3, raster = FALSE) + NoLegend()
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_vln.pdf",sep=""), width = 5, height = 4)
+
+     p1 <- FeatureScatter(current_data, feature1 = "nUMI", feature2 = "mitoRatio")+ggtitle(current_list)
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_scatter_mt.pdf",sep=""), width = 5, height = 4)
+     p1 <- FeatureScatter(current_data, feature1 = "nUMI", feature2 = "nGene")+ggtitle(current_list)
+     ggsave(p1,file=paste("./data_r/QC/", current_list, "_scatter_nGene.pdf",sep=""), width = 5, height = 4)
+
  }
+obj.list <- sce.list
+sce <-  merge(sce.list[[1]], sce.list[2: length(sce.list)])
+sce
+dim(sce)
+#33686 X 174149
+paste("sce assay size:", format(object.size(sce[["RNA"]]), units = "Gb"))
+saveRDS(sce, file = "./data_r/sce_raw.RDS")
+#sce <- readRDS("./data_r/sce_raw.RDS")
+#sce.list <- SplitObject(sce, split.by = "sample")
 
-P01_L_AF <-  df_objs$P01_L_AF
-P02_L_AF <-  df_objs$P02_L_AF
-P03_L_AF <-  df_objs$P03_L_AF
-P04_L_AF <-  df_objs$P04_L_AF
-P05_L_AF <-  df_objs$P05_L_AF
-P06_L_AF <-  df_objs$P06_L_AF
-P07_L_AF <-  df_objs$P07_L_AF
-P08_L_AF <-  df_objs$P08_L_AF
-P09_L_CTRL <-  df_objs$P09_L_CTRL
-P10_L_CTRL <-  df_objs$P10_L_CTRL
-P11_L_CTRL <-  df_objs$P11_L_CTRL
-P04_R_AF <-  df_objs$P04_R_AF
-P05_R_AF <-  df_objs$P05_R_AF
-P13_R_AF <-  df_objs$P13_R_AF
-P14_R_AF <-  df_objs$P14_R_AF
-P15_R_CTRL <-  df_objs$P15_R_CTRL
-P16_R_CTRL <-  df_objs$P16_R_CTRL
-P17_R_CTRL <-  df_objs$P17_R_CTRL
-P10_R_CTRL <-  df_objs$P10_R_CTRL
+sce.list <- obj.list
+for (i in seq_along(sce.list)) {    
+     current_list <- names(sce.list)[i]     
+     current_data <- sce.list[[current_list]]   
 
-haf <- merge(P01_L_AF, y = c(P02_L_AF, P03_L_AF,P04_L_AF, P05_L_AF, P06_L_AF, P07_L_AF, P08_L_AF, P09_L_CTRL, P10_L_CTRL, P11_L_CTRL, P04_R_AF, P05_R_AF, P13_R_AF, P14_R_AF, P15_R_CTRL, P16_R_CTRL, P17_R_CTRL, P10_R_CTRL), 
-                                add.cell.ids = c('P01_L_AF', 'P02_L_AF', 'P03_L_AF', 'P04_L_AF', 'P05_L_AF', 'P06_L_AF', 'P07_L_AF', 'P08_L_AF', 'P09_L_CTRL', 'P10_L_CTRL', 'P11_L_CTRL', 'P04_R_AF', 'P05_R_AF', 'P13_R_AF', 'P14_R_AF', 'P15_R_CTRL', 'P16_R_CTRL', 'P17_R_CTRL', 'P10_R_CTRL'), 
-                                project = "af")
+     current_data <- NormalizeData(current_data)
+     current_data <- FindVariableFeatures(current_data, selection.method = "vst", nfeatures = 3000)
+     current_data <- ScaleData(current_data)
+     current_data <- RunPCA(current_data)  
 
-saveRDS(haf, file = "haf.RDS")
+     current_data <- Find_doublet(current_data)
+     #current_data <-subset(current_data,subset=doublet_info=="Singlet")
+  
+     sce.list[[current_list]]    <- current_data
+ }
+# 15min / 8000 cells
+sce <-  merge(sce.list[[1]], sce.list[2: length(sce.list)])
+sce
+dim(sce)
+paste("sce assay size:", format(object.size(sce[["RNA"]]), units = "Gb"))
+saveRDS(sce, file = "./data_r/sce_doublet.RDS")
+#sce <- readRDS("./data_r/sce_doublet.RDS")
+#sce.list <- SplitObject(sce, split.by = "sample")
+
+library(easySCFr) 
+saveH5(sce,'./data_r/data.h5')
+
+for (i in seq_along(sce.list)) {    
+     current_list <- names(sce.list)[i]     
+     current_data <- sce.list[[current_list]] 
+
+     current_data <- subset(x = current_data, subset= (nUMI > 500) & (nUMI < 15000) )
+     current_data <- subset(x = current_data, subset= (nGene > 300) & (nGene < 6000) )
+     #current_data <- subset(x = current_data, subset= (log10GenesPerUMI > 0.75))
+     current_data <- subset(x = current_data, subset= (mitoRatio < 0.05))
+     current_data <- subset(x = current_data, subset= (riboRatio < 0.05))
+     #current_data <- subset(x = current_data, subset= (hbRatio < 0.05))
+     sce.list[[current_list]] <- current_data
+} 
+obj <-  merge(sce.list[[1]], sce.list[2: length(sce.list)])
+dim(obj) 
+# 33686 X 139391
+
+for (i in seq_along(sce.list)) {    
+     current_list <- names(sce.list)[i]     
+     current_data <- sce.list[[current_list]] 
+     q1_nUMI <- quantile(current_data@meta.data$nUMI, 0.25)
+     q3_nUMI <- quantile(current_data@meta.data$nUMI, 0.75)
+     IQR_nUMI <- q3_nUMI - q1_nUMI
+     q1_nGene <- quantile(current_data@meta.data$nGene, 0.25)
+     q3_nGene <- quantile(current_data@meta.data$nGene, 0.75)
+     IQR_nGene <- q3_nGene - q1_nGene
+
+     current_data <- subset(x = current_data, subset= ( nUMI >= q1_nUMI - 1.5*IQR_nUMI) & ( nUMI <= q3_nUMI + 1.5*IQR_nUMI))  
+     current_data <- subset(x = current_data, subset= ( nGene >= q1_nGene - 1.5*IQR_nGene) & ( nGene <= q3_nGene +1.5*IQR_nGene))
+
+     #current_data <- subset(current_data,subset=doublet_info=="Singlet")
+     sce.list[[current_list]] <- current_data
+}
+obj <-  merge(sce.list[[1]], sce.list[2: length(sce.list)])
+dim(obj) 
+#33686 X 132151
+
+paste("sce assay size:", format(object.size(sce[["RNA"]]), units = "Gb"))
+
+ 
+sce <-  obj 
+options(future.globals.maxSize = 1000*1024^6)
+sce <- NormalizeData(sce)
+sce <- FindVariableFeatures(sce, selection.method = "vst", nfeatures = 3000)
+sce <- ScaleData(sce)
+sce <- RunPCA(sce)
+ElbowPlot(sce)
+sce <- RunUMAP(sce, dims = 1:20)
+sce <- FindNeighbors(sce, dims = 1:20)
+sce <- FindClusters(sce, resolution = 0.1)
+p1 <- DimPlot(sce, reduction = "umap", cols = mycolor, group.by = "doublet_info", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_umap_doublet_info.pdf",sep=""),width = 6, height = 4)
 
 
+sce <- subset(sce,subset=doublet_info=="Singlet") 
+paste("sce assay size:", format(object.size(sce[["RNA"]]), units = "Gb"))
+sce
+#33686 X 128394
+saveRDS(sce, file = "./data_r/sce_singlet.RDS")
 
 
+options(future.globals.maxSize = 1000*1024^6)
+sce <- NormalizeData(sce)
+sce <- FindVariableFeatures(sce)
+sce <- ScaleData(sce)
+sce <- RunPCA(sce)
+p1 <- ElbowPlot(sce)
+p1
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_PCA_ElbowPlot.pdf",sep=""),width = 5, height = 4)
+sce <- RunUMAP(sce, dims = 1:20)
+sce <- FindNeighbors(sce, dims = 1:20)
+sce <- FindClusters(sce, resolution = 0.1)
+
+p1 <- DimPlot(sce, reduction = "pca", cols = mycolor, group.by = "group", pt.size = 0.1, raster=FALSE)
+p2 <- VlnPlot(sce, feature = "PC_1", cols = mycolor,group.by = "group",pt.size = 0, raster=FALSE)
+p3 <- p1 + p2
+ggsave(p3,file=paste("./data_r/Initialization/", "sce_pca_before_batch.pdf",sep=""),width = 10, height = 4)
+p1 <- DimPlot(sce, reduction = "umap", cols = mycolor, group.by = "seurat_clusters", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_umap_before_batch_cluster.pdf",sep=""),width = 5, height = 4)
+p1 <- DimPlot(sce, reduction = "umap", cols = mycolor, group.by = "group", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_umap_before_batch_group.pdf",sep=""),width = 5, height = 4)
+p1 <- DimPlot(sce, reduction = "umap", cols = mycolor, group.by = "sample", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_umap_before_batch_sample.pdf",sep=""),width = 6, height = 4)
+ 
+
+sce_harmony <- IntegrateLayers(object =sce, 
+                                   method = HarmonyIntegration,
+                                   orig.reduction = "pca", 
+                                   new.reduction = "harmony", verbose = FALSE)
+
+obj <- sce_harmony
+obj <- FindNeighbors(obj, reduction = "harmony", dims = 1:30)
+obj <- FindClusters(obj, resolution = 0.1, cluster.name = "harmony_clusters")
+obj <- RunUMAP(obj, reduction = "harmony", dims = 1:30, reduction.name = "umap.harmony")
+p1 <- DimPlot(obj, reduction = "umap.harmony", cols = mycolor, group.by = "harmony_clusters", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_umap_after_batch_cluster_harmony.pdf",sep=""), width = 5, height = 4)
+p1 <- DimPlot(obj, reduction = "umap.harmony", cols = mycolor, group.by = "group", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_umap_after_batch_group_harmony.pdf",sep=""), width = 5, height = 4)
+p1 <- DimPlot(obj, reduction = "umap.harmony", cols = mycolor, group.by = "sample", pt.size = 0.1, raster=FALSE)
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_umap_after_batch_sample_harmony.pdf",sep=""), width = 6, height = 4)
+
+p1 <- DimPlot(obj, reduction = "umap.harmony", cols = mycolor, group.by = "sample", split.by = 'group', pt.size = 0.1, raster=FALSE, ncol = 2)
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_umap_after_batch_sample_harmony_split_group.pdf",sep=""), width = 10.5, height = 8)
+sce_harmony <- obj
+
+feats <- c("nFeature_RNA", "nCount_RNA", "mitoRatio" )
+p1 <- VlnPlot(obj, group.by = "group", features = feats, pt.size = 0, ncol = 3, cols = mycolor, raster = FALSE) + NoLegend()
+ggsave(p1,file=paste("./data_r/Initialization/", "sce_QC_vln_group.pdf",sep=""), width = 7.5, height = 4)
+p2 <- VlnPlot(obj, group.by = "sample", features = feats, pt.size = 0, ncol = 3, cols = mycolor, raster = FALSE) + NoLegend()
+ggsave(p2,file=paste("./data_r/Initialization/", "sce_QC_vln_sample.pdf",sep=""), width = 15, height = 4)
 
 
+check_cc =  function(ob){
+  s.genes <- intersect(cc.genes$s.genes,rownames(ob))
+  g2m.genes <- intersect(cc.genes$g2m.genes,rownames(ob))
+  ob = ob %>% 
+  NormalizeData() %>%  
+  FindVariableFeatures() %>%  
+  CellCycleScoring(s.features = s.genes, 
+                   g2m.features = g2m.genes) %>%
+  ScaleData(features = rownames(.)) %>%  
+  RunPCA(features = c(s.genes,g2m.genes))
+  return(ob)
+}
+sce <- obj
+ob1 = check_cc(sce)
+table(ob1$Phase)
+PCAPlot(ob1,group.by = "Phase") 
+VlnPlot(ob1,"S.Score",group.by = "Phase")
+VlnPlot(ob1,"G2M.Score",group.by = "Phase")
 
+p1 <- FeaturePlot(ob1, features = 'G2M.Score', raster = FALSE) +ggtitle('G2-M phase score') +scale_color_gradientn(values = seq(0,1,0.2),colors = c('#330066','#336699','#66CC66','#FFCC33'))
+p2 <- FeaturePlot(ob1, features = 'S.Score', raster = FALSE) +ggtitle('S phase score') +scale_color_gradientn(values = seq(0,1,0.2),colors = c('#330066','#336699','#66CC66','#FFCC33'))
+p3 <- p1 | p2
+ggsave(plot=p3, filename="./data_r/Initialization/sce_umap_cellcycle.pdf",width = 10, height = 4)
 
+ 
+obj <- sce_harmony
+# now that integration is complete, rejoin layers
+obj <- JoinLayers(obj) 
+obj
+obj[["RNA"]]$'scale.data.P02_LA_AF.1' <- NULL
+obj[["RNA"]]$'scale.data.P03_LA_AF.2' <- NULL
+obj[["RNA"]]$'scale.data.P04_LA_AF.3' <- NULL
+obj[["RNA"]]$'scale.data.P04_RA_AF.4' <- NULL
+obj[["RNA"]]$'scale.data.P05_RA_AF.5' <- NULL
+obj[["RNA"]]$'scale.data.P06_LA_AF.6' <- NULL
+obj[["RNA"]]$'scale.data.P07_LA_AF.7' <- NULL
+obj[["RNA"]]$'scale.data.P09_LA_CTRL.8' <- NULL
+obj[["RNA"]]$'scale.data.P10_LA_CTRL.9' <- NULL
+obj[["RNA"]]$'scale.data.P10_RA_CTRL.10' <- NULL
+obj[["RNA"]]$'scale.data.P11_LA_CTRL.11' <- NULL
+obj[["RNA"]]$'scale.data.P13_RA_AF.12' <- NULL
+obj[["RNA"]]$'scale.data.P15_RA_CTRL.13' <- NULL
+obj[["RNA"]]$'scale.data.P16_RA_CTRL.14' <- NULL
+obj[["RNA"]]$'scale.data.P17_RA_CTRL.15' <- NULL
+obj
+paste("obj assay size:", format(object.size(obj[["RNA"]]), units = "Gb"))
+sce_harmony <- obj 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
+saveRDS(sce_harmony, file = "./data_r/sce_harmony.RDS")
 
